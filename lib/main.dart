@@ -12,8 +12,15 @@ import 'admin/data/repositories/route_repository.dart';
 import 'admin/data/repositories/schedule_repository.dart';
 import 'admin/data/repositories/user_repository.dart';
 import 'app.dart';
+import 'core/preferences/user_preferences_notifier.dart';
 import 'core/saved/saved_destinations_notifier.dart';
+import 'core/services/voice_search_service.dart';
 import 'core/theme/theme_notifier.dart';
+import 'features/advisories/repositories/advisory_repository.dart';
+import 'features/auth/repositories/auth_repository.dart';
+import 'features/destinations/repositories/destination_repository.dart';
+import 'features/recommendations/repositories/recommendation_repository.dart';
+import 'features/routes/repositories/route_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,16 +33,30 @@ void main() async {
   final savedNotifier = SavedDestinationsNotifier();
   await savedNotifier.loadSaved();
 
+  // Load persisted user preferences (font size + language)
+  final prefsNotifier = UserPreferencesNotifier();
+  await prefsNotifier.load();
+
   runApp(
     MultiProvider(
       providers: [
         // ── Theme ────────────────────────────────────────────────────────────
         ChangeNotifierProvider<ThemeNotifier>.value(value: themeNotifier),
 
+        // ── Accessibility & Language preferences ──────────────────────────────
+        ChangeNotifierProvider<UserPreferencesNotifier>.value(value: prefsNotifier),
+
+        // ── Voice Search ──────────────────────────────────────────────────────
+        ChangeNotifierProvider<VoiceSearchService>(create: (_) => VoiceSearchService()),
+
         // ── Saved Destinations ────────────────────────────────────────────────
         ChangeNotifierProvider<SavedDestinationsNotifier>.value(value: savedNotifier),
 
         // ── Core repositories (tourist app + admin portal) ───────────────────
+        ChangeNotifierProvider(create: (_) => TouristDestinationRepository()),
+        ChangeNotifierProvider(create: (_) => TouristRouteRepository()),
+        ChangeNotifierProvider(create: (_) => TouristAdvisoryRepository()),
+        ChangeNotifierProvider(create: (_) => TouristRecommendationRepository()),
         ChangeNotifierProvider(create: (_) => DestinationRepository()),
         ChangeNotifierProvider(create: (_) => RouteRepository()),
         ChangeNotifierProvider(create: (_) => ProviderRepository()),
@@ -49,6 +70,9 @@ void main() async {
 
         // ── User management ─────────────────────────────────────────────────
         ChangeNotifierProvider(create: (_) => UserRepository()),
+
+        // ── Authentication foundation ─────────────────────────────────────────
+        ChangeNotifierProvider<AuthRepository>.value(value: AuthRepository.instance),
 
         // ── Admin authentication ─────────────────────────────────────────────
         ChangeNotifierProvider(create: (_) => AdminAuthRepository()),

@@ -1,6 +1,7 @@
 import 'route_option.dart';
 import 'transport_route.dart';
 
+// MIGRATION PENDING — replaced by API after backend validation
 /// Pre-defined official route options for Biliran Island's top destinations.
 ///
 /// All fares sourced from the Biliran Tourism Office (simulated for thesis).

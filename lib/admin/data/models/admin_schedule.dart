@@ -77,4 +77,47 @@ class AdminSchedule {
     dateAdded:           dateAdded,
     dateUpdated:         DateTime.now(),
   );
+
+  factory AdminSchedule.fromBackendJson(Map<String, dynamic> json) {
+    final prov = json['providerId'];
+    final providerId = prov is Map ? (prov['_id'] as String? ?? '') : (prov as String? ?? '');
+    final providerName = prov is Map ? (prov['name'] as String? ?? '') : '';
+
+    final rt = json['routeId'];
+    final routeId = rt is Map ? (rt['_id'] as String? ?? '') : (rt as String? ?? '');
+    final routeLabel = rt is Map ? (rt['label'] as String? ?? '') : '';
+
+    final isActive = json['isActive'] as bool? ?? true;
+    final isSeasonal = json['isSeasonal'] as bool? ?? false;
+
+    return AdminSchedule(
+      id: json['_id'] as String? ?? json['id'] as String? ?? '',
+      providerId: providerId,
+      providerName: providerName.isNotEmpty ? providerName : 'Transport Provider',
+      routeId: routeId,
+      routeLabel: routeLabel.isNotEmpty ? routeLabel : 'Transport Route',
+      departureTimes: (json['departureTimes'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      operatingDays: (json['operatingDays'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      status: isSeasonal
+          ? ScheduleStatus.seasonal
+          : isActive
+              ? ScheduleStatus.active
+              : ScheduleStatus.inactive,
+      notes: json['notes'] as String?,
+      dateAdded: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+      dateUpdated: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
+    );
+  }
+
+  Map<String, dynamic> toBackendJson() {
+    return {
+      'providerId': providerId,
+      'routeId': routeId,
+      'departureTimes': departureTimes,
+      'operatingDays': operatingDays,
+      'isSeasonal': status == ScheduleStatus.seasonal,
+      'isActive': status == ScheduleStatus.active || status == ScheduleStatus.seasonal,
+      if (notes != null) 'notes': notes,
+    };
+  }
 }

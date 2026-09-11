@@ -9,13 +9,18 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:lottie/lottie.dart' hide Marker;
+import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/transitions/transition_data.dart';
+import '../../../data/models/destination_model.dart';
 import '../../../widgets/ambient/ambient_glow.dart';
+import '../destinations/repositories/destination_repository.dart';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -121,260 +126,9 @@ class _RouteLeg {
   final bool     isSea;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Static dataset
-// ─────────────────────────────────────────────────────────────────────────────
+// Destination dataset is loaded dynamically from TouristDestinationRepository (MongoDB REST API)
 
-const _destinations = [
-  _Destination(
-    id:            'naval',
-    name:          'Naval Town Proper',
-    tagline:       'Provincial Capital · Starting Point',
-    description:   'The main hub of Biliran Province. All routes depart from the Naval terminal. Accessible by bus from Tacloban.',
-    position:      LatLng(11.5745, 124.3658),
-    category:      _SpotCategory.culture,
-    fare:          '₱ 0 (Start)',
-    duration:      '—',
-    providers:     3,
-    advisoryLevel: 0,
-    imageAsset:    'assets/images/dalutan.jpg',
-  ),
-  _Destination(
-    id:            'agta',
-    name:          'Agta Beach',
-    tagline:       'White Sand · Ocean Breeze',
-    description:   'A stunning white-sand beach in Almeria with calm waters perfect for swimming and picnics.',
-    position:      LatLng(11.5567, 124.3058),
-    category:      _SpotCategory.beach,
-    fare:          '₱ 60–100',
-    duration:      '35 min',
-    providers:     4,
-    advisoryLevel: 0,
-    imageAsset:    'assets/images/agta.JPG',
-  ),
-  _Destination(
-    id:            'kasabangan',
-    name:          'Kasabangan Falls',
-    tagline:       'Hidden Waterfall · Cool Waters',
-    description:   'A scenic multi-tiered waterfall accessible via habal-habal from Almeria. Popular for swimming.',
-    position:      LatLng(11.5422, 124.3567),
-    category:      _SpotCategory.waterfall,
-    fare:          '₱ 40–60',
-    duration:      '20 min',
-    providers:     2,
-    advisoryLevel: 2,
-    isHiddenGem:   true,
-    imageAsset:    'assets/images/kasabangan.jpg',
-  ),
-  _Destination(
-    id:            'ulan',
-    name:          'Ulan-ulan Falls',
-    tagline:       'Thundering Cascade · Nature Trail',
-    description:   'One of Biliran\'s most impressive waterfalls, named for the mist that rises like rain.',
-    position:      LatLng(11.5350, 124.3800),
-    category:      _SpotCategory.waterfall,
-    fare:          '₱ 50–80',
-    duration:      '30 min',
-    providers:     2,
-    advisoryLevel: 2,
-    isHiddenGem:   true,
-    imageAsset:    'assets/images/ulan-ulan.jpg',
-  ),
-  _Destination(
-    id:            'mainit',
-    name:          'Mainit Hot Spring',
-    tagline:       'Natural Thermal Spring · Relaxation',
-    description:   'Natural geothermal hot springs with therapeutic mineral-rich waters. Great after waterfall trekking.',
-    position:      LatLng(11.5283, 124.4017),
-    category:      _SpotCategory.mountain,
-    fare:          '₱ 30–50',
-    duration:      '25 min',
-    providers:     3,
-    advisoryLevel: 1,
-    imageAsset:    'assets/images/higatangan.jpg',
-  ),
-  _Destination(
-    // Field-verified GPS — BiliRoute Research Team on-site survey
-    id:            'sambawan_island',
-    name:          'Sambawan Island',
-    tagline:       'Island Paradise · Snorkeling',
-    description:   'A pristine island with clear turquoise waters, coral reefs, and stunning viewpoints. A top Biliran gem.',
-    position:      LatLng(11.766384941701004, 124.26429026111757),
-    category:      _SpotCategory.island,
-    fare:          '₱ 500–1,500',
-    duration:      '1 hr',
-    providers:     5,
-    advisoryLevel: 3,
-    imageAsset:    'assets/images/sambawan.jpg',
-  ),
-  _Destination(
-    id:            'maripipi',
-    name:          'Maripipi Island',
-    tagline:       'Remote Island · Volcano Views',
-    description:   'A quiet island with a dormant volcano, white beaches, and undiscovered dive spots.',
-    position:      LatLng(11.7833, 124.3000),
-    category:      _SpotCategory.island,
-    fare:          '₱ 200–350',
-    duration:      '45 min',
-    providers:     3,
-    advisoryLevel: 1,
-    isHiddenGem:   true,
-    imageAsset:    'assets/images/maripipi.jpg',
-  ),
-  _Destination(
-    id:            'almeria',
-    name:          'Almeria Mountain Trail',
-    tagline:       'Trek · Summit Views',
-    description:   'A challenging mountain trail offering panoramic views of the Biliran Strait and neighboring islands.',
-    position:      LatLng(11.5600, 124.3300),
-    category:      _SpotCategory.mountain,
-    fare:          '₱ 100–200',
-    duration:      '40 min',
-    providers:     2,
-    advisoryLevel: 2,
-    imageAsset:    'assets/images/dalutan.jpg',
-  ),
-];
-
-const _legs = [
-  _RouteLeg(
-    from:      'Naval',
-    to:        'Agta Beach',
-    transport: 'Multicab',
-    duration:  '35 min',
-    fare:      '₱ 60–100',
-    icon:      Icons.airport_shuttle_rounded,
-  ),
-  _RouteLeg(
-    from:      'Agta Beach',
-    to:        'Kasabangan Falls',
-    transport: 'Habal-habal',
-    duration:  '20 min',
-    fare:      '₱ 40–60',
-    icon:      Icons.two_wheeler_rounded,
-  ),
-  _RouteLeg(
-    from:      'Kasabangan',
-    to:        'Mainit Hot Spring',
-    transport: 'Habal-habal',
-    duration:  '25 min',
-    fare:      '₱ 30–50',
-    icon:      Icons.two_wheeler_rounded,
-  ),
-  _RouteLeg(
-    from:      'Mainit',
-    to:        'Sambawan Island',
-    transport: 'Boat',
-    duration:  '1 hr',
-    fare:      '₱ 500–1,500',
-    icon:      Icons.sailing_rounded,
-    isSea:     true,
-  ),
-  _RouteLeg(
-    from:      'Sambawan',
-    to:        'Maripipi Island',
-    transport: 'Boat',
-    duration:  '45 min',
-    fare:      '₱ 200–350',
-    icon:      Icons.directions_boat_rounded,
-    isSea:     true,
-  ),
-];
-
-// Hub / start of all routes
-const _naval = LatLng(11.5745, 124.3658);
-
-// Mocked per-destination route waypoints (Naval → destination)
-// Land routes use road-following intermediate points; sea uses port hops.
-const _destRoutes = <String, List<LatLng>>{
-  'naval': [_naval],
-  'agta': [
-    _naval,
-    LatLng(11.5720, 124.3500),
-    LatLng(11.5680, 124.3300),
-    LatLng(11.5640, 124.3150),
-    LatLng(11.5567, 124.3058),
-  ],
-  'kasabangan': [
-    _naval,
-    LatLng(11.5700, 124.3480),
-    LatLng(11.5600, 124.3520),
-    LatLng(11.5480, 124.3540),
-    LatLng(11.5422, 124.3567),
-  ],
-  'ulan': [
-    _naval,
-    LatLng(11.5700, 124.3600),
-    LatLng(11.5580, 124.3680),
-    LatLng(11.5450, 124.3740),
-    LatLng(11.5350, 124.3800),
-  ],
-  'mainit': [
-    _naval,
-    LatLng(11.5700, 124.3600),
-    LatLng(11.5580, 124.3680),
-    LatLng(11.5430, 124.3850),
-    LatLng(11.5350, 124.3930),
-    LatLng(11.5283, 124.4017),
-  ],
-  'sambawan': [
-    // Land to Kawayan Port
-    _naval,
-    LatLng(11.5700, 124.3500),
-    LatLng(11.5780, 124.3200),
-    LatLng(11.5850, 124.3050), // Kawayan Port
-    // Sea crossing
-    LatLng(11.5920, 124.2970),
-    LatLng(11.5980, 124.2920),
-    LatLng(11.6040, 124.2900),
-    LatLng(11.6097, 124.2879),
-  ],
-  'maripipi': [
-    _naval,
-    LatLng(11.5850, 124.3050), // Kawayan Port
-    LatLng(11.6300, 124.3000),
-    LatLng(11.6900, 124.3000),
-    LatLng(11.7400, 124.3000),
-    LatLng(11.7833, 124.3000),
-  ],
-  'almeria': [
-    _naval,
-    LatLng(11.5720, 124.3500),
-    LatLng(11.5660, 124.3400),
-    LatLng(11.5620, 124.3350),
-    LatLng(11.5600, 124.3300),
-  ],
-};
-
-// Sea segment starts at this waypoint index per destination
-const _destSeaStart = <String, int>{
-  'sambawan': 4,
-  'maripipi': 1,
-};
-
-// Per-destination navigation chip metadata
-const _destNavMeta = <String, (String, String, bool)>{
-  // id → (duration label, fare label, hasSea)
-  'naval':      ('—',       '₱ 0',          false),
-  'agta':       ('35 min',  '₱ 60–100',     false),
-  'kasabangan': ('55 min',  '₱ 100–160',    false),
-  'ulan':       ('50 min',  '₱ 90–140',     false),
-  'mainit':     ('45 min',  '₱ 80–130',     false),
-  'sambawan':   ('1h 45m',  '₱ 600–1,700',  true),
-  'maripipi':   ('1h 20m',  '₱ 250–400',    true),
-  'almeria':    ('40 min',  '₱ 100–200',    false),
-};
-
-// Legacy full-route points (used for "Explore all" overview)
-const _routePoints = [
-  LatLng(11.5745, 124.3658),
-  LatLng(11.5567, 124.3058),
-  LatLng(11.5422, 124.3567),
-  LatLng(11.5283, 124.4017),
-  LatLng(11.6097, 124.2879),
-  LatLng(11.7833, 124.3000),
-];
-const _seaSegmentStart = 3;
+// Route waypoints, legs, and metadata are calculated dynamically from active API destinations and live device GPS coordinates
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Screen
@@ -414,6 +168,15 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
   bool _mapError      = false;
   bool _panelExpanded = false;
   bool _showRoutes    = true;
+
+  // Real GPS Location Service & position state
+  final LocationService _locationService = LocationService();
+  Position? _userPosition;
+  StreamSubscription<Position>? _positionStreamSub;
+  BitmapDescriptor? _userLocationIcon;
+
+  // Dynamic REST API destinations state (from TouristDestinationRepository / MongoDB)
+  List<_Destination> _activeDestinations = [];
 
   // Selected destination (null = none)
   _Destination? _selectedDestination;
@@ -506,12 +269,163 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
     _startStatusCycle();
     _loadMapStyle();
 
+    // Check & request phone location on init
+    _initUserLocation();
+
     if (kIsWeb) {
       setState(() => _mapReady = true);
     } else {
       Future.delayed(const Duration(seconds: 8), () {
         if (mounted && !_mapReady) setState(() => _mapError = true);
       });
+    }
+  }
+
+  /// Initializes device location and requests GPS permissions
+  Future<void> _initUserLocation({bool userInitiated = false}) async {
+    _userLocationIcon ??= await _buildUserLocationMarker();
+
+    final result = await _locationService.getCurrentPosition();
+    if (!mounted) return;
+
+    if (result.isSuccess && result.position != null) {
+      final pos = result.position!;
+      setState(() {
+        _userPosition = pos;
+        _updateUserMarker(pos);
+      });
+
+      // Center map on actual phone location if requested or initial launch
+      final userLatLng = LatLng(pos.latitude, pos.longitude);
+      _mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: userLatLng,
+            zoom: 14.5,
+            tilt: 30.0,
+          ),
+        ),
+      );
+
+      _subscribeToPositionStream();
+    } else {
+      // Show user-facing feedback banner/snackbar (no mock fallback!)
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Location unavailable: ${result.message}'),
+            backgroundColor: AppColors.danger,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _initUserLocation(userInitiated: true),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Subscribes to Geolocator position stream for live movement updates
+  void _subscribeToPositionStream() {
+    _positionStreamSub?.cancel();
+    _positionStreamSub = _locationService.getPositionStream().listen(
+      (Position position) {
+        if (!mounted) return;
+        setState(() {
+          _userPosition = position;
+          _updateUserMarker(position);
+        });
+      },
+      onError: (_) {},
+    );
+  }
+
+  /// Adds or updates the User Location marker on the map
+  void _updateUserMarker(Position position) {
+    if (_userLocationIcon == null) return;
+    const userMarkerId = MarkerId('user_location');
+    final userLatLng = LatLng(position.latitude, position.longitude);
+
+    _markers.removeWhere((m) => m.markerId == userMarkerId);
+    _markers.add(
+      Marker(
+        markerId: userMarkerId,
+        position: userLatLng,
+        icon: _userLocationIcon!,
+        anchor: const Offset(0.5, 0.5),
+        zIndexInt: 10,
+        infoWindow: const InfoWindow(title: 'Your Current Location'),
+      ),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncDestinationsFromRepo();
+  }
+
+  void _syncDestinationsFromRepo() {
+    final repo = context.watch<TouristDestinationRepository>();
+    final items = repo.destinations.isNotEmpty
+        ? repo.destinations
+        : allBiliranDestinations;
+
+    final mapped = items.map((item) => _destinationFromItem(item)).toList();
+
+    if (mapped.length != _activeDestinations.length ||
+        !_areDestinationsEqual(_activeDestinations, mapped)) {
+      _activeDestinations = mapped;
+      if (_mapReady) {
+        _runMapAnimations();
+      }
+    }
+  }
+
+  static bool _areDestinationsEqual(List<_Destination> a, List<_Destination> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id) return false;
+    }
+    return true;
+  }
+
+  static _Destination _destinationFromItem(DestinationItem item) {
+    return _Destination(
+      id: item.id,
+      name: item.title,
+      tagline: '${item.category} · ${item.municipality}',
+      description: item.description,
+      position: LatLng(item.lat, item.lng),
+      category: _parseSpotCategory(item.category),
+      fare: item.estimatedFare > 0 ? '₱ ${item.estimatedFare}' : '₱ Free',
+      duration: item.travelTime.isNotEmpty ? item.travelTime : '—',
+      providers: 3,
+      advisoryLevel: 0,
+      isHiddenGem: !item.isFieldVerified,
+      imageAsset: item.imageAsset,
+    );
+  }
+
+  static _SpotCategory _parseSpotCategory(String catStr) {
+    switch (catStr.toLowerCase()) {
+      case 'beach':
+        return _SpotCategory.beach;
+      case 'waterfall':
+      case 'falls':
+        return _SpotCategory.waterfall;
+      case 'island':
+        return _SpotCategory.island;
+      case 'mountain':
+      case 'forest':
+        return _SpotCategory.mountain;
+      case 'culture':
+      case 'historical':
+      default:
+        return _SpotCategory.culture;
     }
   }
 
@@ -544,6 +458,7 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
 
   @override
   void dispose() {
+    _positionStreamSub?.cancel();
     _mapController?.dispose();
     _panelController.dispose();
     _pulseController.dispose();
@@ -648,12 +563,60 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
     return BitmapDescriptor.bytes(bytes!.buffer.asUint8List());
   }
 
+  /// Draws a distinct blue pulsing dot marker for the User's Current GPS Location
+  static Future<BitmapDescriptor> _buildUserLocationMarker() async {
+    const size = 64.0;
+    const center = Offset(size / 2, size / 2);
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    // Outer soft blue glow
+    canvas.drawCircle(
+      center,
+      26.0,
+      Paint()
+        ..color = const Color(0xFF2563EB).withValues(alpha: 0.25)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+
+    // White outer ring
+    canvas.drawCircle(
+      center,
+      18.0,
+      Paint()..color = Colors.white,
+    );
+
+    // Core royal blue dot
+    canvas.drawCircle(
+      center,
+      12.0,
+      Paint()..color = const Color(0xFF2563EB),
+    );
+
+    // Center pulse dot
+    canvas.drawCircle(
+      center,
+      4.0,
+      Paint()..color = Colors.white.withValues(alpha: 0.95),
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(size.toInt(), size.toInt());
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.bytes(bytes!.buffer.asUint8List());
+  }
+
   // ── Map lifecycle ────────────────────────────────────────────────────────────
 
   void _onMapCreated(GoogleMapController c) {
     _mapController = c;
     setState(() => _mapReady = true);
     _runMapAnimations();
+    if (_userPosition != null) {
+      _updateUserMarker(_userPosition!);
+    } else {
+      _initUserLocation();
+    }
   }
 
   // Compute bearing (degrees) from LatLng a → b
@@ -676,11 +639,17 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
       categorySelectedIcons[cat] = await _buildCustomMarker(cat, isSelected: true);
     }
 
+    _normalIcons.clear();
+    _selectedIcons.clear();
+
+    setState(() {
+      _markers.removeWhere((m) => m.markerId.value != 'user_location');
+    });
+
     // Stagger markers with custom icons
-    for (int i = 0; i < _destinations.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 200));
+    for (int i = 0; i < _activeDestinations.length; i++) {
       if (!mounted) return;
-      final dest = _destinations[i];
+      final dest = _activeDestinations[i];
       final icon = categoryIcons[dest.category]!;
       final selectedIcon = categorySelectedIcons[dest.category]!;
       _normalIcons[dest.id]   = icon;
@@ -701,11 +670,20 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
 
   // ── Per-destination route drawing ────────────────────────────────────────────
 
-  /// Animates route polyline from Naval → [dest], then flies camera to fit.
+  /// Animates route polyline from user position / origin → [dest], then flies camera to fit.
   Future<void> _drawRouteToDestination(_Destination dest) async {
-    final points = _destRoutes[dest.id];
-    if (points == null || points.length < 2) return;
-    final seaStart = _destSeaStart[dest.id]; // null = all land
+    final List<LatLng> points = [];
+
+    if (_userPosition != null) {
+      points.add(LatLng(_userPosition!.latitude, _userPosition!.longitude));
+      points.add(dest.position);
+    } else {
+      points.add(const LatLng(11.5602, 124.3973));
+      points.add(dest.position);
+    }
+
+    if (points.length < 2) return;
+    final seaStart = dest.category == _SpotCategory.island ? 1 : null;
 
     final List<LatLng> growing = [];
     setState(() {
@@ -714,13 +692,14 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
       _showNavChip = false;
     });
 
-    // Step 1 — cinematic zoom to destination first
-    final bear = _bearing(_naval, dest.position);
+    // Step 1 — cinematic zoom to destination / route midpoint
+    final startPt = points.first;
+    final bear = _bearing(startPt, dest.position);
     await _mapController?.animateCamera(
       CameraUpdate.newCameraPosition(CameraPosition(
         target:  LatLng(
-          (_naval.latitude  + dest.position.latitude)  / 2,
-          (_naval.longitude + dest.position.longitude) / 2,
+          (startPt.latitude  + dest.position.latitude)  / 2,
+          (startPt.longitude + dest.position.longitude) / 2,
         ),
         zoom:    11.5,
         tilt:    45.0,
@@ -849,8 +828,8 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
     if (_normalIcons.isEmpty) return;
     final hasSelection = selectedId != null;
     setState(() {
-      _markers.clear();
-      for (final dest in _destinations) {
+      _markers.removeWhere((m) => m.markerId.value != 'user_location');
+      for (final dest in _activeDestinations) {
         final isSelected = dest.id == selectedId;
         // Dim non-selected markers when one is active
         final alpha = hasSelection && !isSelected ? 0.38 : 1.0;
@@ -865,6 +844,11 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
           zIndexInt: isSelected ? 1 : 0,
           onTap:     () => _selectDestination(dest),
         ));
+      }
+
+      // Preserve User Location marker on map rebuild
+      if (_userPosition != null) {
+        _updateUserMarker(_userPosition!);
       }
     });
   }
@@ -920,12 +904,24 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
 
   // ── Quick actions ────────────────────────────────────────────────────────────
 
-  void _onLocateMe() {
+  Future<void> _onLocateMe() async {
     HapticFeedback.mediumImpact();
     setState(() => _locateActive = true);
-    _mapController?.animateCamera(
-      CameraUpdate.newCameraPosition(_initialCamera),
-    );
+
+    if (_userPosition != null) {
+      await _mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng(_userPosition!.latitude, _userPosition!.longitude),
+            zoom: 15.2,
+            tilt: 30.0,
+          ),
+        ),
+      );
+    } else {
+      await _initUserLocation(userInitiated: true);
+    }
+
     Future.delayed(const Duration(seconds: 2),
         () => mounted ? setState(() => _locateActive = false) : null);
   }
@@ -948,54 +944,60 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
     }
   }
 
-  // Keep legacy full-route animation for "Explore All"
+  List<_RouteLeg> get _dynamicLegs {
+    if (_activeDestinations.isEmpty) return const [];
+    final List<_RouteLeg> legs = [];
+    final startName = _userPosition != null ? 'Your Location' : _activeDestinations.first.name;
+
+    for (int i = 0; i < _activeDestinations.length; i++) {
+      final fromName = i == 0 ? startName : _activeDestinations[i - 1].name;
+      final toDest = _activeDestinations[i];
+      final isSea = toDest.category == _SpotCategory.island;
+      legs.add(_RouteLeg(
+        from: fromName,
+        to: toDest.name,
+        transport: isSea ? 'Boat / Charter' : 'Multicab / Habal-habal',
+        duration: toDest.duration,
+        fare: toDest.fare,
+        icon: isSea ? Icons.sailing_rounded : Icons.airport_shuttle_rounded,
+        isSea: isSea,
+      ));
+    }
+    return legs;
+  }
+
+  List<LatLng> get _dynamicOverviewPoints {
+    final List<LatLng> pts = [];
+    if (_userPosition != null) {
+      pts.add(LatLng(_userPosition!.latitude, _userPosition!.longitude));
+    }
+    pts.addAll(_activeDestinations.map((d) => d.position));
+    return pts;
+  }
+
   Future<void> _animateRouteLines() async {
+    final pts = _dynamicOverviewPoints;
+    if (pts.length < 2) return;
+
     final List<LatLng> growing = [];
-    for (int i = 0; i < _routePoints.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 220));
+    for (int i = 0; i < pts.length; i++) {
+      await Future.delayed(const Duration(milliseconds: 180));
       if (!mounted) return;
-      growing.add(_routePoints[i]);
-      final isSea = i >= _seaSegmentStart;
+      growing.add(pts[i]);
       setState(() {
         _polylines
           ..clear()
           ..add(Polyline(
-            polylineId: const PolylineId('route'),
+            polylineId: const PolylineId('overview_route'),
             points:     List.from(growing),
-            color:      isSea
-                ? const Color(0xFF06B6D4).withValues(alpha: 0.85)
-                : const Color(0xFF1E40AF).withValues(alpha: 0.85),
-            width:      isSea ? 4 : 6,
-            patterns:   isSea ? [PatternItem.dash(20), PatternItem.gap(10)] : [],
+            color:      const Color(0xFF1E40AF),
+            width:      5,
             jointType:  JointType.round,
             endCap:     Cap.roundCap,
             startCap:   Cap.roundCap,
           ));
       });
     }
-    await Future.delayed(const Duration(milliseconds: 200));
-    if (!mounted) return;
-    setState(() {
-      _polylines.clear();
-      _polylines.add(Polyline(
-        polylineId: const PolylineId('land'),
-        points:     _routePoints.sublist(0, _seaSegmentStart + 1),
-        color:      const Color(0xFF1E40AF),
-        width:      6,
-        jointType:  JointType.round,
-        endCap:     Cap.roundCap,
-        startCap:   Cap.roundCap,
-      ));
-      _polylines.add(Polyline(
-        polylineId: const PolylineId('sea'),
-        points:     _routePoints.sublist(_seaSegmentStart),
-        color:      const Color(0xFF06B6D4),
-        width:      4,
-        patterns:   [PatternItem.dash(20), PatternItem.gap(10)],
-        endCap:     Cap.roundCap,
-        startCap:   Cap.roundCap,
-      ));
-    });
   }
 
   // ── Hybrid / Real View mode toggle ──────────────────────────────────────
@@ -1013,8 +1015,11 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
       // Cinematic fly-in: tilt up, zoom slightly toward selected or island center
       final focusTarget = _selectedDestination?.position
           ?? const LatLng(11.5900, 124.3400);
+      final startPt = _userPosition != null
+          ? LatLng(_userPosition!.latitude, _userPosition!.longitude)
+          : const LatLng(11.5900, 124.3400);
       final bear = _selectedDestination != null
-          ? _bearing(_naval, focusTarget)
+          ? _bearing(startPt, focusTarget)
           : 15.0;
 
       // Step 1 — gentle zoom-to + tilt
@@ -1134,9 +1139,10 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
                       routePoints: _currentRoutePoints,
                       progress:    _routeTravelCtrl.value,
                       hasSea:      _selectedDestination != null &&
-                          _destSeaStart.containsKey(_selectedDestination!.id),
-                      seaStart:    _selectedDestination != null
-                          ? (_destSeaStart[_selectedDestination!.id] ?? 999)
+                          _selectedDestination!.category == _SpotCategory.island,
+                      seaStart:    _selectedDestination != null &&
+                          _selectedDestination!.category == _SpotCategory.island
+                          ? 1
                           : 999,
                     ),
                   ),
@@ -1175,7 +1181,7 @@ class _MapPreviewScreenState extends State<MapPreviewScreen>
           Positioned(
             bottom: 0, left: 0, right: 0,
             child: _BottomRoutePanel(
-              legs:         _legs,
+              legs:         _dynamicLegs,
               expanded:     _panelExpanded,
               navClearance: widget.navClearance,
               onToggle:     () => setState(() => _panelExpanded = !_panelExpanded),
@@ -1630,10 +1636,9 @@ class _NavigationChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta  = _destNavMeta[destination.id];
-    final dur   = meta?.$1 ?? '\u2014';
-    final fare  = meta?.$2 ?? '\u2014';
-    final hasSea = meta?.$3 ?? false;
+    final dur    = destination.duration;
+    final fare   = destination.fare;
+    final hasSea = destination.category == _SpotCategory.island;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 11.h),
@@ -1679,7 +1684,7 @@ class _NavigationChip extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text('Naval',
+                    Text('Current Location',
                         style: TextStyle(
                           fontSize:   11.sp,
                           fontWeight: FontWeight.w700,
@@ -2682,20 +2687,22 @@ class _BottomRoutePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPad = navClearance + 12.h;
+    final isDark    = Theme.of(context).brightness == Brightness.dark;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 380),
       curve:    Curves.easeOutCubic,
       decoration: BoxDecoration(
-        color:        Colors.white,
+        color:        isDark ? DarkColors.card : Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withValues(alpha: 0.10),
+            color:      Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
             blurRadius: 28,
             offset:     const Offset(0, -6),
           ),
         ],
+        border: isDark ? Border.all(color: DarkColors.border, width: 1) : null,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -2713,7 +2720,7 @@ class _BottomRoutePanel extends StatelessWidget {
                     width:  40.w,
                     height: 4.h,
                     decoration: BoxDecoration(
-                      color:        AppColors.divider,
+                      color:        isDark ? DarkColors.divider : AppColors.divider,
                       borderRadius: BorderRadius.circular(99),
                     ),
                   ),
@@ -2725,7 +2732,7 @@ class _BottomRoutePanel extends StatelessWidget {
                         children: [
                           _TransportIcon(
                             icon:  Icons.airport_shuttle_rounded,
-                            color: AppColors.primary,
+                            color: isDark ? AppColors.oceanCyan : AppColors.primary,
                           ),
                           const SizedBox(width: 4),
                           _TransportIcon(
@@ -2745,7 +2752,7 @@ class _BottomRoutePanel extends StatelessWidget {
                             style: TextStyle(
                               fontSize:   13.sp,
                               fontWeight: FontWeight.w800,
-                              color:      AppColors.textPrimary,
+                              color:      isDark ? DarkColors.text : AppColors.textPrimary,
                             )),
                       ),
                       // Total fare
@@ -2768,7 +2775,7 @@ class _BottomRoutePanel extends StatelessWidget {
                         expanded
                             ? Icons.keyboard_arrow_down_rounded
                             : Icons.keyboard_arrow_up_rounded,
-                        color: AppColors.textSecondary,
+                        color: isDark ? DarkColors.subtext : AppColors.textSecondary,
                         size:  18.sp,
                       ),
                     ],
@@ -2837,19 +2844,20 @@ class _LegTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _color;
+    final color  = _color;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: EdgeInsets.all(10.r),
       decoration: BoxDecoration(
-        color:        leg.isSea
-            ? const Color(0xFFF0F9FF)
-            : Colors.white,
+        color: leg.isSea
+            ? (isDark ? const Color(0xFF0C2434) : const Color(0xFFF0F9FF))
+            : (isDark ? DarkColors.elevated : Colors.white),
         borderRadius: BorderRadius.circular(14.r),
         border: Border.all(
           color: leg.isSea
-              ? const Color(0xFFBAE6FD)
-              : AppColors.divider,
+              ? (isDark ? const Color(0xFF164E63) : const Color(0xFFBAE6FD))
+              : (isDark ? DarkColors.border : AppColors.divider),
         ),
       ),
       child: Row(
@@ -2877,7 +2885,7 @@ class _LegTile extends StatelessWidget {
                           style: TextStyle(
                             fontSize:   11.sp,
                             fontWeight: FontWeight.w700,
-                            color:      AppColors.textPrimary,
+                            color:      isDark ? DarkColors.text : AppColors.textPrimary,
                           )),
                     ),
                     Padding(

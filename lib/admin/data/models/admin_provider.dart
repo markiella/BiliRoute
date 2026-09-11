@@ -121,6 +121,74 @@ class AdminProvider {
     dateAdded:                dateAdded,
     dateUpdated:              DateTime.now(),
   );
+
+  factory AdminProvider.fromBackendJson(Map<String, dynamic> json) {
+    final statusStr = json['verificationStatus'] as String? ?? 'pending';
+    ProviderStatus status;
+    switch (statusStr.toLowerCase()) {
+      case 'verified': status = ProviderStatus.verified; break;
+      case 'suspended': status = ProviderStatus.suspended; break;
+      case 'pending':
+      default: status = ProviderStatus.pending; break;
+    }
+
+    final catStr = json['providerType'] as String? ?? 'Boat Operator';
+    ProviderCategory category;
+    switch (catStr.toLowerCase()) {
+      case 'van operator':
+      case 'van_operator': category = ProviderCategory.vanOperator; break;
+      case 'habal-habal driver':
+      case 'habal_habal': category = ProviderCategory.habalHabal; break;
+      case 'multicab operator':
+      case 'multicab_operator': category = ProviderCategory.multicabOperator; break;
+      case 'tour guide':
+      case 'tour_guide': category = ProviderCategory.tourGuide; break;
+      case 'tricycle driver':
+      case 'tricycle_driver': category = ProviderCategory.tricycleDriver; break;
+      case 'ferry operator':
+      case 'ferry_operator': category = ProviderCategory.ferryOperator; break;
+      case 'boat operator':
+      case 'boat_operator':
+      default: category = ProviderCategory.boatOperator; break;
+    }
+
+    return AdminProvider(
+      id: json['_id'] as String? ?? json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      providerType: category,
+      contactNumber: json['contactNumber'] as String? ?? '',
+      municipality: json['municipality'] as String? ?? 'Naval',
+      serviceArea: json['serviceArea'] as String? ?? 'Biliran Province',
+      compatibleTransportTypes: const [],
+      status: status,
+      registrationCode: json['registrationCode'] as String?,
+      rating: (json['rating'] as num?)?.toDouble() ?? 4.8,
+      verifiedBy: json['verifiedBy'] as String?,
+      verifiedAt: DateTime.tryParse(json['verifiedAt']?.toString() ?? ''),
+      maxCapacity: (json['maxCapacity'] as num?)?.toInt(),
+      serviceNotes: json['notes'] as String?,
+      dateAdded: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+      dateUpdated: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
+    );
+  }
+
+  Map<String, dynamic> toBackendJson() {
+    return {
+      'name': name,
+      'providerType': providerType.label,
+      'contactNumber': contactNumber,
+      'municipality': municipality,
+      'serviceArea': serviceArea,
+      'verificationStatus': status == ProviderStatus.verified
+          ? 'verified'
+          : status == ProviderStatus.suspended
+              ? 'suspended'
+              : 'pending',
+      if (registrationCode != null) 'registrationCode': registrationCode,
+      if (maxCapacity != null) 'maxCapacity': maxCapacity,
+      if (serviceNotes != null) 'notes': serviceNotes,
+    };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -3,6 +3,10 @@ import 'package:go_router/go_router.dart';
 import '../../data/models/destination_model.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
+import '../../features/auth/screens/email_verification_screen.dart';
+import '../../features/auth/screens/forgot_password_screen.dart';
+import '../../features/auth/screens/forgot_password_otp_screen.dart';
+import '../../features/auth/screens/reset_password_screen.dart';
 import '../../features/destinations/details/destination_details_screen.dart';
 import '../../features/home/pages/category_list_page.dart';
 import '../../features/home/pages/destinations_list_page.dart';
@@ -13,6 +17,7 @@ import '../../features/itinerary/route_selection/route_selection_screen.dart';
 import '../../features/map/map_preview_screen.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
 import '../../features/onboarding/screens/welcome_screen.dart';
+import '../../features/profile/edit_profile_screen.dart';
 import '../../features/profile/saved_destinations_screen.dart';
 import '../../navigation/main_navigation.dart';
 import '../transitions/app_transitions.dart';
@@ -39,6 +44,10 @@ class AppRouter {
   static const String home               = '/home';
   static const String login              = '/login';
   static const String register           = '/register';
+  static const String emailVerification  = '/email-verification';
+  static const String forgotPassword     = '/forgot-password';
+  static const String forgotPasswordOtp  = '/forgot-password-otp';
+  static const String resetPassword      = '/reset-password';
   static const String generating         = '/generating';
   static const String routeSelection     = '/route-selection';
   static const String itineraryResult    = '/itinerary-result';
@@ -47,6 +56,7 @@ class AppRouter {
   static const String destinations       = '/destinations';
   static const String destinationDetails = '/destination-details';
   static const String savedDestinations  = '/saved-destinations';
+  static const String editProfile        = '/edit-profile';
 
   // ── Default fallback payload (for direct navigation / deep links) ────────
   static TransitionPayload _payloadFromExtra(GoRouterState state) {
@@ -218,6 +228,71 @@ class AppRouter {
           state,
           const SavedDestinationsScreen(),
         ),
+      ),
+
+      // ── Edit Profile ───────────────────────────────────────────────────────
+      GoRoute(
+        path:    editProfile,
+        name:    'edit-profile',
+        pageBuilder: (context, state) => AppTransitions.slideUp(
+          state,
+          const EditProfileScreen(),
+        ),
+      ),
+
+      // ── Email Verification (after registration) ───────────────────────────
+      GoRoute(
+        path:    emailVerification,
+        name:    'email-verification',
+        pageBuilder: (context, state) {
+          final email = state.extra is String
+              ? state.extra as String
+              : '';
+          return AppTransitions.slideUp(
+            state,
+            EmailVerificationScreen(email: email),
+          );
+        },
+      ),
+
+      // ── Forgot Password — Step 1: Email entry ────────────────────────────
+      GoRoute(
+        path:    forgotPassword,
+        name:    'forgot-password',
+        pageBuilder: (context, state) => AppTransitions.slideUp(
+          state,
+          const ForgotPasswordScreen(),
+        ),
+      ),
+
+      // ── Forgot Password — Step 2: OTP ────────────────────────────────────
+      GoRoute(
+        path:    forgotPasswordOtp,
+        name:    'forgot-password-otp',
+        pageBuilder: (context, state) {
+          final email = state.extra is String
+              ? state.extra as String
+              : '';
+          return AppTransitions.slideUp(
+            state,
+            ForgotPasswordOtpScreen(email: email),
+          );
+        },
+      ),
+
+      // ── Forgot Password — Step 3: Reset ─────────────────────────────────
+      GoRoute(
+        path:    resetPassword,
+        name:    'reset-password',
+        pageBuilder: (context, state) {
+          final email = state.extra is String
+              ? state.extra as String
+              : '';
+          return AppTransitions.slideUp(
+            state,
+            ResetPasswordScreen(email: email),
+          );
+        },
       ),
     ],
   );

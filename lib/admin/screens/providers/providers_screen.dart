@@ -224,8 +224,17 @@ class _ProvidersScreenState extends State<ProvidersScreen> {
                                   Tooltip(
                                     message: 'Verify',
                                     child: IconButton(
-                                      onPressed: () => repo.verifyProvider(p.id,
-                                          verifiedBy: 'Tourism Officer'),
+                                      onPressed: () async {
+                                        final ok = await repo.verifyProviderApi(p.id);
+                                        if (context.mounted && ok) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('${p.name} verified successfully!'),
+                                              backgroundColor: AdminColors.success,
+                                            ),
+                                          );
+                                        }
+                                      },
                                       icon: const Icon(Icons.verified_rounded,
                                           size: 16, color: AdminColors.success),
                                       visualDensity: VisualDensity.compact,
@@ -332,36 +341,47 @@ class _ProviderFormDialogState extends State<_ProviderFormDialog> {
     super.dispose();
   }
 
-  void _save() {
+  void _save() async {
     if (!_formKey.currentState!.validate()) return;
     final repo = context.read<ProviderRepository>();
 
-    if (_isEdit) {
-      final updated = widget.provider!.copyWith(
-        name:         _nameCtrl.text.trim(),
-        contactNumber:_contactCtrl.text.trim(),
-        municipality: _municipalityCtrl.text.trim(),
-        serviceArea:  _serviceAreaCtrl.text.trim(),
-        serviceNotes: _notesCtrl.text.trim(),
-        providerType: _category,
-        status:       _status,
-      );
-      repo.updateProvider(updated);
-    } else {
-      repo.create(AdminProvider(
-        id:                       'sp-${DateTime.now().millisecondsSinceEpoch}',
-        name:                     _nameCtrl.text.trim(),
-        providerType:             _category,
-        contactNumber:            _contactCtrl.text.trim(),
-        municipality:             _municipalityCtrl.text.trim(),
-        serviceArea:              _serviceAreaCtrl.text.trim(),
-        compatibleTransportTypes: [],
-        status:                   _status,
-        serviceNotes:             _notesCtrl.text.trim(),
-        dateAdded:                DateTime.now(),
-      ));
+    try {
+      if (_isEdit) {
+        final updated = widget.provider!.copyWith(
+          name:         _nameCtrl.text.trim(),
+          contactNumber:_contactCtrl.text.trim(),
+          municipality: _municipalityCtrl.text.trim(),
+          serviceArea:  _serviceAreaCtrl.text.trim(),
+          serviceNotes: _notesCtrl.text.trim(),
+          providerType: _category,
+          status:       _status,
+        );
+        await repo.updateProviderApi(updated);
+      } else {
+        await repo.createProvider(AdminProvider(
+          id:                       'sp-${DateTime.now().millisecondsSinceEpoch}',
+          name:                     _nameCtrl.text.trim(),
+          providerType:             _category,
+          contactNumber:            _contactCtrl.text.trim(),
+          municipality:             _municipalityCtrl.text.trim(),
+          serviceArea:              _serviceAreaCtrl.text.trim(),
+          compatibleTransportTypes: [],
+          status:                   _status,
+          serviceNotes:             _notesCtrl.text.trim(),
+          dateAdded:                DateTime.now(),
+        ));
+      }
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving provider: $e'),
+            backgroundColor: AdminColors.danger,
+          ),
+        );
+      }
     }
-    Navigator.pop(context);
   }
 
   @override

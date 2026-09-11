@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../admin/core/admin_colors.dart';
 import '../admin/core/admin_theme.dart';
+import '../admin/screens/advisories/advisories_screen.dart';
 import '../admin/screens/dashboard/dashboard_screen.dart';
 import '../admin/screens/destinations/destinations_screen.dart';
+import '../admin/screens/field_surveys/field_surveys_screen.dart';
 import '../admin/screens/providers/providers_screen.dart';
+import '../admin/screens/routes/routes_screen.dart';
+import '../admin/screens/schedules/schedules_screen.dart';
 import 'admin_nav_drawer.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,25 +80,13 @@ class _AdminScaffoldState extends State<AdminScaffold> {
       case AdminModule.destinations:
         return const DestinationsScreen();
       case AdminModule.routes:
-        return const _ComingSoonScreen(
-          module: 'Route Management',
-          icon: Icons.alt_route_rounded,
-          subtitle: 'Manage multi-step transport routes and fare information.',
-        );
+        return const RoutesScreen();
       case AdminModule.providers:
         return const ProvidersScreen();
       case AdminModule.schedules:
-        return const _ComingSoonScreen(
-          module: 'Transport Schedules',
-          icon: Icons.schedule_rounded,
-          subtitle: 'Manage departure times and operating schedules.',
-        );
+        return const SchedulesScreen();
       case AdminModule.advisories:
-        return const _ComingSoonScreen(
-          module: 'Travel Advisories',
-          icon: Icons.campaign_rounded,
-          subtitle: 'Publish and manage travel advisories for tourists.',
-        );
+        return const AdvisoriesScreen();
       case AdminModule.gallery:
         return const _ComingSoonScreen(
           module: 'Gallery Management',
@@ -102,11 +94,7 @@ class _AdminScaffoldState extends State<AdminScaffold> {
           subtitle: 'Upload and organize destination photos.',
         );
       case AdminModule.fieldSurvey:
-        return const _ComingSoonScreen(
-          module: 'Field Survey Records',
-          icon: Icons.gps_fixed_rounded,
-          subtitle: 'Manage primary GPS data from field surveys.',
-        );
+        return const FieldSurveysScreen();
       case AdminModule.recommendationSettings:
         return const _ComingSoonScreen(
           module: 'Recommendation Settings',

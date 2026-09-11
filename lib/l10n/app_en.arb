@@ -1,0 +1,433 @@
+{
+  "@@locale": "en",
+
+  "appName": "BiliRoute",
+  "@appName": { "description": "Application name" },
+
+  "appTagline": "Smart Tourism Mobility. Local Routes.",
+  "@appTagline": { "description": "App tagline shown on onboarding and splash" },
+
+  "navHome": "Home",
+  "@navHome": { "description": "Bottom navigation: Home tab" },
+
+  "navMap": "Map",
+  "@navMap": { "description": "Bottom navigation: Map tab" },
+
+  "navRoutes": "Routes",
+  "@navRoutes": { "description": "Bottom navigation: Routes tab" },
+
+  "navFare": "Fare",
+  "@navFare": { "description": "Bottom navigation: Fare tab" },
+
+  "navProfile": "Profile",
+  "@navProfile": { "description": "Bottom navigation: Profile tab" },
+
+  "searchHint": "Find routes, providers, destinations...",
+  "@searchHint": { "description": "Search bar placeholder text" },
+
+  "searchByVoice": "Search by voice",
+  "@searchByVoice": { "description": "Accessibility label for voice search button" },
+
+  "voiceListening": "Listening...",
+  "@voiceListening": { "description": "Voice search: listening state label" },
+
+  "voiceTapToSpeak": "Tap to speak",
+  "@voiceTapToSpeak": { "description": "Voice search: idle state label" },
+
+  "voiceNotAvailable": "Voice search is not available on this device.",
+  "@voiceNotAvailable": { "description": "Shown when SpeechToText cannot initialize" },
+
+  "voicePermissionDenied": "Microphone permission is required for voice search.",
+  "@voicePermissionDenied": { "description": "Shown when microphone permission is denied" },
+
+  "voicePermissionPermanentlyDenied": "Microphone access was permanently denied. Please enable it in device Settings.",
+  "@voicePermissionPermanentlyDenied": { "description": "Shown when permission is permanently denied" },
+
+  "voiceError": "Voice search encountered an error. Please try again.",
+  "@voiceError": { "description": "Generic voice search error" },
+
+  "voiceNoSpeechDetected": "No speech detected. Please try again.",
+  "homeHeroGreeting": "Welcome to Biliran",
+  "@homeHeroGreeting": { "description": "Home hero greeting" },
+
+  "homeHeroTitle": "Travel smarter across Biliran",
+  "@homeHeroTitle": { "description": "Home hero title" },
+
+  "sectionCategories": "Categories",
+  "@sectionCategories": { "description": "Home: Categories section title" },
+
+  "sectionPopularDestinations": "Popular Destinations",
+  "@sectionPopularDestinations": { "description": "Home: Popular Destinations section title" },
+
+  "sectionLocalServices": "Local Services",
+  "@sectionLocalServices": { "description": "Home: Local Services section title" },
+
+  "sectionExploreMap": "Explore Map",
+  "@sectionExploreMap": { "description": "Home: Explore Map section title" },
+
+  "sectionLiveTravelConditions": "Live Travel Conditions",
+  "@sectionLiveTravelConditions": { "description": "Home: Live Travel Conditions section title" },
+
+  "sectionNearbyProviders": "Nearby Verified Providers",
+  "@sectionNearbyProviders": { "description": "Home: Nearby Verified Providers section title" },
+
+  "sectionSmartRouteSuggestions": "Smart Route Suggestions",
+  "@sectionSmartRouteSuggestions": { "description": "Home: Smart Route Suggestions section title" },
+
+  "sectionUpcomingEvents": "Upcoming Events",
+  "@sectionUpcomingEvents": { "description": "Home: Upcoming Events section title" },
+
+  "sectionTouristMoments": "Tourist Moments",
+  "@sectionTouristMoments": { "description": "Home: Tourist Moments section title" },
+
+  "sectionContinueExploring": "Continue Exploring",
+  "@sectionContinueExploring": { "description": "Home: Continue Exploring section title" },
+
+  "seeAll": "See All",
+  "@seeAll": { "description": "Generic see-all button label" },
+
+  "categoryBeach": "Beach",
+  "@categoryBeach": { "description": "Destination category: Beach" },
+
+  "categoryMountain": "Mountain",
+  "@categoryMountain": { "description": "Destination category: Mountain" },
+
+  "categoryWaterfall": "Waterfall",
+  "@categoryWaterfall": { "description": "Destination category: Waterfall" },
+
+  "categoryCulture": "Culture",
+  "@categoryCulture": { "description": "Destination category: Culture" },
+
+  "categoryFood": "Food",
+  "@categoryFood": { "description": "Destination category: Food" },
+
+  "categoryIsland": "Island",
+  "@categoryIsland": { "description": "Destination category: Island" },
+
+  "allDestinations": "All Destinations",
+  "@allDestinations": { "description": "Destination list page title" },
+
+  "noDestinationsFound": "No published destinations found.",
+  "@noDestinationsFound": { "description": "Destination list empty state" },
+
+  "noResultsFound": "No results found.",
+  "@noResultsFound": { "description": "Generic empty search results" },
+
+  "fareGuideTitle": "Fare Guide",
+  "@fareGuideTitle": { "description": "Fare Guide screen title" },
+
+  "fareGuideSubtitle": "Biliran Island",
+  "@fareGuideSubtitle": { "description": "Fare Guide screen subtitle prefix" },
+
+  "fareFilterAll": "All",
+  "@fareFilterAll": { "description": "Fare filter chip: All" },
+
+  "fareFilterLand": "Land",
+  "@fareFilterLand": { "description": "Fare filter chip: Land routes" },
+
+  "fareFilterWater": "Water",
+  "@fareFilterWater": { "description": "Fare filter chip: Water routes" },
+
+  "fareNoRoutes": "No routes found",
+  "@fareNoRoutes": { "description": "Fare guide empty state" },
+
+  "fareCheapest": "Cheapest",
+  "@fareCheapest": { "description": "Fare highlight label: cheapest" },
+
+  "fareFastest": "Fastest",
+  "@fareFastest": { "description": "Fare highlight label: fastest" },
+
+  "fareOfficial": "Official Fare",
+  "@fareOfficial": { "description": "Fare badge label" },
+
+  "farePerPerson": "per person",
+  "@farePerPerson": { "description": "Fare unit: per person" },
+
+  "farePerTrip": "per trip",
+  "@farePerTrip": { "description": "Fare unit: per trip" },
+
+  "fareSearchHint": "Search origin or destination…",
+  "@fareSearchHint": { "description": "Fare guide search bar placeholder" },
+
+  "fareSourceNote": "All fares are official and sourced from the Biliran Tourism Office. Fares are fixed — not estimated.",
+  "@fareSourceNote": { "description": "Fare source attribution banner" },
+
+  "planTripTitle": "Find Best Route",
+  "@planTripTitle": { "description": "Plan trip / route finder screen title" },
+
+  "startingPoint": "Starting Point",
+  "@startingPoint": { "description": "Plan trip form: Starting Point label" },
+
+  "budgetLabel": "Budget (₱)",
+  "@budgetLabel": { "description": "Plan trip form: Budget label" },
+
+  "timeLabel": "Travel Time",
+  "@timeLabel": { "description": "Plan trip form: Travel Time label" },
+
+  "preferencesLabel": "Travel Preferences",
+  "@preferencesLabel": { "description": "Plan trip form: Travel Preferences label" },
+
+  "priorityLabel": "Route Priority",
+  "@priorityLabel": { "description": "Plan trip form: Route Priority label" },
+
+  "travelersLabel": "Number of Travelers",
+  "@travelersLabel": { "description": "Plan trip form: Number of Travelers label" },
+
+  "priorityCheapest": "Cheapest",
+  "@priorityCheapest": { "description": "Route priority option: cheapest" },
+
+  "priorityFastest": "Fastest",
+  "@priorityFastest": { "description": "Route priority option: fastest" },
+
+  "prioritySafest": "Safest",
+  "@prioritySafest": { "description": "Route priority option: safest" },
+
+  "priorityBalanced": "Balanced",
+  "@priorityBalanced": { "description": "Route priority option: balanced" },
+
+  "findBestRoute": "Find Best Route",
+  "@findBestRoute": { "description": "Plan trip submit button" },
+
+  "traveler": "traveler",
+  "@traveler": { "description": "Singular traveler label" },
+
+  "travelers": "travelers",
+  "@travelers": { "description": "Plural travelers label" },
+
+  "hour": "hour",
+  "@hour": { "description": "Singular hour label" },
+
+  "hours": "hours",
+  "@hours": { "description": "Plural hours label" },
+
+  "locationAndNavigation": "Location & Navigation",
+  "@locationAndNavigation": { "description": "Destination details: Location & Navigation section title" },
+
+  "currentLocation": "Current Location",
+  "@currentLocation": { "description": "Map: current device location label" },
+
+  "yourLocation": "Your Location",
+  "@yourLocation": { "description": "Map marker: user's real-time location" },
+
+  "locationUnavailable": "Location unavailable",
+  "@locationUnavailable": { "description": "Shown when GPS cannot be determined" },
+
+  "enableLocation": "Enable Location",
+  "@enableLocation": { "description": "Button to enable GPS permission" },
+
+  "locateMe": "Use my current location",
+  "@locateMe": { "description": "Accessibility label for locate-me button" },
+
+  "realTimeLocation": "Real-time device location",
+  "@realTimeLocation": { "description": "Map marker info window snippet for user location" },
+
+  "saveDestination": "Save destination",
+  "@saveDestination": { "description": "Accessibility label for save button" },
+
+  "unsaveDestination": "Unsave destination",
+  "@unsaveDestination": { "description": "Accessibility label for unsave button" },
+
+  "save": "Save",
+  "@save": { "description": "Generic save button" },
+
+  "saved": "Saved",
+  "@saved": { "description": "State: item is saved" },
+
+  "unsave": "Unsave",
+  "@unsave": { "description": "Unsave action" },
+
+  "saveRoute": "Save Route",
+  "@saveRoute": { "description": "Save route button label" },
+
+  "edit": "Edit",
+  "@edit": { "description": "Generic edit button" },
+
+  "saveChanges": "Save Changes",
+  "@saveChanges": { "description": "Form submit: save changes" },
+
+  "cancel": "Cancel",
+  "@cancel": { "description": "Generic cancel button" },
+
+  "back": "Back",
+  "@back": { "description": "Generic back navigation label" },
+
+  "next": "Next",
+  "@next": { "description": "Generic next/continue button" },
+
+  "done": "Done",
+  "@done": { "description": "Generic done button" },
+
+  "retry": "Retry",
+  "@retry": { "description": "Generic retry button" },
+
+  "loading": "Loading...",
+  "@loading": { "description": "Generic loading state" },
+
+  "login": "Log In",
+  "@login": { "description": "Auth: login action" },
+
+  "register": "Register",
+  "@register": { "description": "Auth: register action" },
+
+  "logout": "Log Out",
+  "@logout": { "description": "Auth: logout action" },
+
+  "email": "Email",
+  "@email": { "description": "Auth: email field label" },
+
+  "password": "Password",
+  "@password": { "description": "Auth: password field label" },
+
+  "fullName": "Full Name",
+  "@fullName": { "description": "Auth/profile: full name field label" },
+
+  "forgotPassword": "Forgot Password?",
+  "@forgotPassword": { "description": "Auth: forgot password link" },
+
+  "myProfile": "My Profile",
+  "@myProfile": { "description": "Profile screen title" },
+
+  "editProfile": "Edit Profile",
+  "@editProfile": { "description": "Edit profile screen title" },
+
+  "travelPreferences": "Travel Preferences",
+  "@travelPreferences": { "description": "Profile section: Travel Preferences" },
+
+  "savedDestinations": "Saved Destinations",
+  "@savedDestinations": { "description": "Profile section: Saved Destinations" },
+
+  "manageSavedDestinations": "Manage Saved Destinations",
+  "@manageSavedDestinations": { "description": "Settings item: manage saved destinations" },
+
+  "noSavedDestinations": "No saved destinations yet.",
+  "@noSavedDestinations": { "description": "Empty state for saved destinations" },
+
+  "appearance": "Appearance",
+  "@appearance": { "description": "Profile section: Appearance" },
+
+  "myPlaces": "My Places",
+  "@myPlaces": { "description": "Profile section: My Places" },
+
+  "accountSession": "Account Session",
+  "@accountSession": { "description": "Profile section: Account Session" },
+
+  "aboutBiliRoute": "About BiliRoute",
+  "@aboutBiliRoute": { "description": "Profile section: About BiliRoute" },
+
+  "openSettings": "Open profile settings",
+  "@openSettings": { "description": "Accessibility label for settings navigation" },
+
+  "settings": "Settings",
+  "@settings": { "description": "Generic settings label" },
+
+  "accessibility": "Accessibility",
+  "@accessibility": { "description": "Accessibility settings section label" },
+
+  "accessibilityAndLanguage": "Accessibility & Language",
+  "@accessibilityAndLanguage": { "description": "Profile section: Accessibility & Language" },
+
+  "fontSize": "Font Size",
+  "@fontSize": { "description": "Accessibility setting: font size" },
+
+  "fontSizeSmall": "Small",
+  "@fontSizeSmall": { "description": "Font size option: small" },
+
+  "fontSizeMedium": "Medium",
+  "@fontSizeMedium": { "description": "Font size option: medium (default)" },
+
+  "fontSizeLarge": "Large",
+  "@fontSizeLarge": { "description": "Font size option: large" },
+
+  "fontSizePreview": "The quick brown fox jumps over the lazy dog.",
+  "@fontSizePreview": { "description": "Preview text for font size selector" },
+
+  "language": "Language",
+  "@language": { "description": "Language settings label" },
+
+  "appLanguage": "App Language",
+  "@appLanguage": { "description": "Settings: App Language section label" },
+
+  "preferenceRecommended": "Recommended",
+  "@preferenceRecommended": { "description": "Travel preference: recommended" },
+
+  "preferenceBudget": "Budget-Friendly",
+  "@preferenceBudget": { "description": "Travel preference: budget-friendly" },
+
+  "preferenceFastest": "Fastest Route",
+  "@preferenceFastest": { "description": "Travel preference: fastest route" },
+
+  "preferenceFewerTransfers": "Fewer Transfers",
+  "@preferenceFewerTransfers": { "description": "Travel preference: fewer transfers" },
+
+  "preferenceSafer": "Safer Travel",
+  "@preferenceSafer": { "description": "Travel preference: safer travel" },
+
+  "errorGeneric": "Something went wrong. Please try again.",
+  "@errorGeneric": { "description": "Generic error message" },
+
+  "errorNoInternet": "No internet connection. Please check your network.",
+  "@errorNoInternet": { "description": "No internet error" },
+
+  "successProfileUpdated": "Profile updated successfully.",
+  "@successProfileUpdated": { "description": "Profile update success snackbar" },
+
+  "darkMode": "Dark Mode",
+  "@darkMode": { "description": "Appearance: dark mode toggle label" },
+
+  "lightMode": "Light Mode",
+  "@lightMode": { "description": "Appearance: light mode label" },
+
+  "systemDefault": "System Default",
+  "@systemDefault": { "description": "Appearance: follow system theme" },
+
+  "theme": "Theme",
+  "@theme": { "description": "Appearance section: theme label" },
+
+  "appVersion": "App Version",
+  "@appVersion": { "description": "About: app version label" },
+
+  "tourismData": "Tourism Data",
+  "@tourismData": { "description": "About: tourism data source label" },
+
+  "exploreBiliranIsland": "Explore Biliran Island",
+  "@exploreBiliranIsland": { "description": "Explore map card: main title" },
+
+  "exploreBiliranDesc": "Find destinations, routes and important\nlocations on the map.",
+  "@exploreBiliranDesc": { "description": "Explore map card: description" },
+
+  "openMap": "Open Map",
+  "@openMap": { "description": "Explore map card: button label" },
+
+  "yourSavedDestinations": "Your saved destinations",
+  "@yourSavedDestinations": { "description": "Continue Exploring section subtitle" },
+
+  "providerVerified": "Verified",
+  "@providerVerified": { "description": "Provider badge: verified" },
+
+  "providerAvailableNow": "Available Now",
+  "@providerAvailableNow": { "description": "Provider status: available" },
+
+  "providerUnavailable": "Unavailable",
+  "@providerUnavailable": { "description": "Provider status: unavailable" },
+
+  "daysLeft": "{days}d left",
+  "@daysLeft": {
+    "description": "Event countdown chip — e.g. 32d left",
+    "placeholders": { "days": { "type": "int" } }
+  },
+
+  "eventJoin": "Join",
+  "@eventJoin": { "description": "Event card: join button" },
+
+  "serviceAccommodation": "Accommodation",
+  "@serviceAccommodation": { "description": "Service type: accommodation" },
+
+  "serviceBoatRental": "Boat Rental",
+  "@serviceBoatRental": { "description": "Service type: boat rental" },
+
+  "serviceTransport": "Transport",
+  "@serviceTransport": { "description": "Service type: transport" },
+
+  "serviceTourGuide": "Tour Guide",
+  "@serviceTourGuide": { "description": "Service type: tour guide" }
+}

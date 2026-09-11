@@ -57,6 +57,46 @@ class AdminRouteStep {
     notes:           notes           ?? this.notes,
     isSeaRoute:      isSeaRoute      ?? this.isSeaRoute,
   );
+
+  factory AdminRouteStep.fromBackendJson(Map<String, dynamic> json) {
+    final modeStr = json['transportMode'] as String? ?? 'multicab';
+    TransportType type;
+    switch (modeStr.toLowerCase()) {
+      case 'van': type = TransportType.van; break;
+      case 'boat': type = TransportType.boat; break;
+      case 'boatcharter':
+      case 'boat_charter': type = TransportType.boatCharter; break;
+      case 'habalhabal':
+      case 'habal_habal': type = TransportType.habalHabal; break;
+      case 'tricycle': type = TransportType.tricycle; break;
+      case 'multicab':
+      default: type = TransportType.multicab; break;
+    }
+
+    return AdminRouteStep(
+      id: json['_id'] as String? ?? 'step_${json['sequenceOrder'] ?? 1}',
+      from: json['origin'] as String? ?? '',
+      to: json['destination'] as String? ?? '',
+      transportType: type,
+      fareAmount: (json['farePHP'] as num?)?.toInt() ?? 0,
+      durationMinutes: (json['durationMinutes'] as num?)?.toInt() ?? 0,
+      notes: json['notes'] as String?,
+      isSeaRoute: json['isSeaSegment'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toBackendJson(int sequenceOrder) {
+    return {
+      'sequenceOrder': sequenceOrder,
+      'origin': from,
+      'destination': to,
+      'transportMode': transportType.name,
+      'durationMinutes': durationMinutes,
+      'farePHP': fareAmount,
+      'notes': notes,
+      'isSeaSegment': isSeaRoute,
+    };
+  }
 }
 
 class AdminRoute {
@@ -159,4 +199,63 @@ class AdminRoute {
     dateAdded:     dateAdded,
     dateUpdated:   DateTime.now(),
   );
+
+  factory AdminRoute.fromBackendJson(Map<String, dynamic> json) {
+    final stepsList = json['steps'] as List?;
+    final steps = <AdminRouteStep>[];
+    if (stepsList != null) {
+      for (final s in stepsList) {
+        if (s is Map<String, dynamic>) {
+          steps.add(AdminRouteStep.fromBackendJson(s));
+        }
+      }
+    }
+
+    final routeTypeStr = json['routeType'] as String? ?? 'Mixed';
+    RouteType routeType;
+    switch (routeTypeStr.toLowerCase()) {
+      case 'land': routeType = RouteType.land; break;
+      case 'sea': routeType = RouteType.sea; break;
+      case 'mixed':
+      default: routeType = RouteType.mixed; break;
+    }
+
+    final isActive = json['isActive'] as bool? ?? true;
+    final destId = json['destinationId'] is Map
+        ? (json['destinationId']['_id'] as String? ?? '')
+        : (json['destinationId'] as String? ?? '');
+    final destName = json['destinationName'] as String? ??
+        (json['destinationId'] is Map ? (json['destinationId']['name'] as String? ?? '') : '');
+
+    return AdminRoute(
+      id: json['_id'] as String? ?? json['id'] as String? ?? '',
+      label: json['label'] as String? ?? '',
+      startingPoint: json['originName'] as String? ?? '',
+      destination: destName,
+      destinationId: destId,
+      routeType: routeType,
+      steps: steps,
+      status: isActive ? RouteStatus.active : RouteStatus.inactive,
+      badge: json['badge'] as String?,
+      dateAdded: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+      dateUpdated: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
+    );
+  }
+
+  Map<String, dynamic> toBackendJson() {
+    final mappedSteps = steps.asMap().entries.map((entry) {
+      return entry.value.toBackendJson(entry.key + 1);
+    }).toList();
+
+    return {
+      'label': label,
+      'originName': startingPoint,
+      'destinationId': destinationId,
+      'destinationName': destination,
+      'routeType': routeType.name[0].toUpperCase() + routeType.name.substring(1),
+      'steps': mappedSteps,
+      'isActive': status == RouteStatus.active,
+      if (badge != null) 'badge': badge,
+    };
+  }
 }

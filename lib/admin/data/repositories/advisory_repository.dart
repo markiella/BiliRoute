@@ -5,10 +5,24 @@ import 'base_repository.dart';
 // AdvisoryRepository — Travel advisory management
 // ─────────────────────────────────────────────────────────────────────────────
 
+import '../services/advisory_admin_api_service.dart';
+
 class AdvisoryRepository extends BaseRepository<AdminAdvisory> {
-  AdvisoryRepository() {
+  final AdvisoryAdminApiService _apiService;
+
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _isUsingFallback = false;
+
+  AdvisoryRepository({AdvisoryAdminApiService? apiService})
+      : _apiService = apiService ?? AdvisoryAdminApiService() {
     _seedAdvisories();
+    fetchAdvisories();
   }
+
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  bool get isUsingFallback => _isUsingFallback;
 
   void _seedAdvisories() {
     seed(_seedData);
@@ -24,6 +38,87 @@ class AdvisoryRepository extends BaseRepository<AdminAdvisory> {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<List<AdminAdvisory>> fetchAdvisories() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final rawList = await _apiService.getAllAdvisoriesAdmin();
+      if (rawList.isNotEmpty) {
+        final remoteAdvisories = rawList.map((j) => AdminAdvisory.fromBackendJson(j)).toList();
+        seed(remoteAdvisories);
+        _isUsingFallback = false;
+      }
+    } catch (e) {
+      _isUsingFallback = true;
+      _errorMessage = 'Using cached static advisories ($e)';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return items;
+  }
+
+  Future<bool> createAdvisory(AdminAdvisory advisory) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.createAdvisory(advisory.toBackendJson());
+      if (res != null) {
+        await fetchAdvisories();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to create advisory: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
+  Future<bool> updateAdvisoryApi(AdminAdvisory advisory) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.updateAdvisory(advisory.id, advisory.toBackendJson());
+      if (res != null) {
+        await fetchAdvisories();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to update advisory: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
+  Future<bool> deactivateAdvisory(String id) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.deactivateAdvisory(id);
+      if (res != null) {
+        await fetchAdvisories();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to deactivate advisory: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
   }
 
   /// Active published advisories (used by mobile app banner).

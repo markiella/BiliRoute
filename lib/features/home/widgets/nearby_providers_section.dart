@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Provider data model
@@ -122,21 +123,23 @@ class _ProviderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = provider;
+    final p      = provider;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding:    EdgeInsets.all(14.r),
       decoration: BoxDecoration(
-        color:        Colors.white,
+        color:        isDark ? DarkColors.card : Colors.white,
         borderRadius: BorderRadius.circular(18.r),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withValues(alpha: 0.06),
+            color:      Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
             blurRadius: 16,
             offset:     const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: Colors.grey.withValues(alpha: 0.10),
+          color: isDark ? DarkColors.border : Colors.grey.withValues(alpha: 0.10),
         ),
       ),
       child: Row(
@@ -176,37 +179,40 @@ class _ProviderCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize:   13.sp,
                             fontWeight: FontWeight.w800,
-                            color:      AppColors.textPrimary,
+                            color:      isDark ? DarkColors.text : AppColors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                     ),
                     if (p.isVerified) ...[
                       SizedBox(width: 6.w),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 6.w, vertical: 2.h),
-                        decoration: BoxDecoration(
-                          color:        const Color(0xFF1E3A8A)
-                              .withValues(alpha: 0.10),
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.verified_rounded,
-                                color: const Color(0xFF1E3A8A),
-                                size: 9.sp),
-                            SizedBox(width: 3.w),
-                            Text('Verified',
-                                style: TextStyle(
-                                  color:      const Color(0xFF1E3A8A),
-                                  fontSize:   8.sp,
-                                  fontWeight: FontWeight.w700,
-                                )),
-                          ],
-                        ),
-                      ),
+                      Builder(builder: (ctx) {
+                        final l10n = AppLocalizations.of(ctx)!;
+                        return Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 6.w, vertical: 2.h),
+                          decoration: BoxDecoration(
+                            color:        const Color(0xFF1E3A8A)
+                                .withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.verified_rounded,
+                                  color: isDark ? AppColors.oceanCyan : const Color(0xFF1E3A8A),
+                                  size: 9.sp),
+                              SizedBox(width: 3.w),
+                              Text(l10n.providerVerified,
+                                  style: TextStyle(
+                                    color:      isDark ? AppColors.oceanCyan : const Color(0xFF1E3A8A),
+                                    fontSize:   8.sp,
+                                    fontWeight: FontWeight.w700,
+                                  )),
+                            ],
+                          ),
+                        );
+                      }),
                     ],
                   ],
                 ),
@@ -216,12 +222,12 @@ class _ProviderCard extends StatelessWidget {
                 Row(
                   children: [
                     Icon(p.type.icon,
-                        size: 11.sp, color: AppColors.textSecondary),
+                        size: 11.sp, color: isDark ? DarkColors.subtext : AppColors.textSecondary),
                     SizedBox(width: 4.w),
                     Text(p.type.label,
                         style: TextStyle(
                           fontSize: 10.sp,
-                          color:    AppColors.textSecondary,
+                          color:    isDark ? DarkColors.subtext : AppColors.textSecondary,
                         )),
                     SizedBox(width: 8.w),
                     Icon(Icons.star_rounded,
@@ -231,7 +237,7 @@ class _ProviderCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize:   10.sp,
                           fontWeight: FontWeight.w700,
-                          color:      AppColors.textPrimary,
+                          color:      isDark ? DarkColors.text : AppColors.textPrimary,
                         )),
                   ],
                 ),
@@ -263,27 +269,30 @@ class _ProviderCard extends StatelessWidget {
                             ),
                           ),
                           SizedBox(width: 4.w),
-                          Text(
-                            p.isAvailable ? 'Available Now' : 'Unavailable',
-                            style: TextStyle(
-                              color:      p.isAvailable
-                                  ? const Color(0xFF059669)
-                                  : const Color(0xFFEF4444),
-                              fontSize:   9.sp,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                          Builder(builder: (ctx) {
+                            final l10n = AppLocalizations.of(ctx)!;
+                            return Text(
+                              p.isAvailable ? l10n.providerAvailableNow : l10n.providerUnavailable,
+                              style: TextStyle(
+                                color:      p.isAvailable
+                                    ? const Color(0xFF059669)
+                                    : const Color(0xFFEF4444),
+                                fontSize:   9.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            );
+                          }),
                         ],
                       ),
                     ),
                     SizedBox(width: 8.w),
                     Icon(Icons.access_time_rounded,
-                        size: 10.sp, color: AppColors.textSecondary),
+                        size: 10.sp, color: isDark ? DarkColors.subtext : AppColors.textSecondary),
                     SizedBox(width: 3.w),
                     Text(p.responseTime,
                         style: TextStyle(
                           fontSize: 9.5.sp,
-                          color:    AppColors.textSecondary,
+                          color:    isDark ? DarkColors.subtext : AppColors.textSecondary,
                         )),
                   ],
                 ),

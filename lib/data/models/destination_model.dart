@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// MIGRATION PENDING — replaced by API after backend validation
 // ------------------------------------------------------------------
 // FIELD DATA COLLECTION
 // GPS coordinates and destination information are gradually being
@@ -49,6 +50,26 @@ class TourPackage {
   final String       duration;
   final List<String> inclusions;
   final bool         isPopular;
+
+  factory TourPackage.fromJson(Map<String, dynamic> json) {
+    return TourPackage(
+      name: json['name'] as String? ?? '',
+      price: (json['pricePerPerson'] as num?)?.toInt() ?? (json['price'] as num?)?.toInt() ?? 0,
+      duration: json['duration'] as String? ?? '',
+      inclusions: (json['inclusions'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      isPopular: json['isPopular'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'pricePerPerson': price,
+      'duration': duration,
+      'inclusions': inclusions,
+      'isPopular': isPopular,
+    };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -172,6 +193,100 @@ class DestinationItem {
   /// Consistent hero tag used across List → Details transition.
   String get heroTag => 'dest_$id';
 
+  /// Returns a localized title based on active languageCode (e.g. 'es', 'fr', 'de', 'ja', 'ko').
+  String localizedTitle(String languageCode) {
+    switch (languageCode) {
+      case 'es':
+        switch (id.toLowerCase()) {
+          case 'sambawan':     return 'Isla Sambawan';
+          case 'tinago':        return 'Cascadas Tinago';
+          case 'higatangan':   return 'Isla Higatangan';
+          case 'ulan_ulan':
+          case 'ulan-ulan':    return 'Cascadas Ulan-Ulan';
+          case 'canaan':       return 'Granja Canaan Hill';
+          case 'mainit':       return 'Aguas Termales Mainit';
+          case 'tomalistalis': return 'Cascadas Tomalistalis';
+          case 'iyusan':       return 'Terrazas de Arroz de Iyusan';
+          case 'agta':         return 'Playa Agta';
+          case 'recoletos':    return 'Cascadas Recoletos';
+          case 'maripipi':     return 'Isla Maripipi';
+          case 'cabilao':      return 'Isla Cabilao';
+          default:             return title;
+        }
+      case 'fr':
+        switch (id.toLowerCase()) {
+          case 'sambawan':     return 'Île de Sambawan';
+          case 'tinago':        return 'Chutes de Tinago';
+          case 'higatangan':   return 'Île de Higatangan';
+          case 'ulan_ulan':
+          case 'ulan-ulan':    return 'Chutes de Ulan-Ulan';
+          case 'canaan':       return 'Ferme Canaan Hill';
+          case 'mainit':       return 'Sources Chaudes de Mainit';
+          case 'tomalistalis': return 'Chutes de Tomalistalis';
+          case 'iyusan':       return 'Rizières de Iyusan';
+          case 'agta':         return 'Plage de Agta';
+          case 'recoletos':    return 'Chutes de Recoletos';
+          case 'maripipi':     return 'Île de Maripipi';
+          case 'cabilao':      return 'Île de Cabilao';
+          default:             return title;
+        }
+      case 'de':
+        switch (id.toLowerCase()) {
+          case 'sambawan':     return 'Insel Sambawan';
+          case 'tinago':        return 'Tinago-Wasserfall';
+          case 'higatangan':   return 'Insel Higatangan';
+          case 'ulan_ulan':
+          case 'ulan-ulan':    return 'Ulan-Ulan-Wasserfall';
+          case 'canaan':       return 'Canaan Hill Farm';
+          case 'mainit':       return 'Heiße Quellen Mainit';
+          case 'tomalistalis': return 'Tomalistalis-Wasserfall';
+          case 'iyusan':       return 'Reisterrassen von Iyusan';
+          case 'agta':         return 'Strand Agta';
+          case 'recoletos':    return 'Recoletos-Wasserfall';
+          case 'maripipi':     return 'Insel Maripipi';
+          case 'cabilao':      return 'Insel Cabilao';
+          default:             return title;
+        }
+      case 'ja':
+        switch (id.toLowerCase()) {
+          case 'sambawan':     return 'サンバワン島';
+          case 'tinago':        return 'ティナゴの滝';
+          case 'higatangan':   return 'ヒガタンガン島';
+          case 'ulan_ulan':
+          case 'ulan-ulan':    return 'ウランウランの滝';
+          case 'canaan':       return 'カナンヒル農園';
+          case 'mainit':       return 'マイニット温泉';
+          case 'tomalistalis': return 'トマリスタリスの滝';
+          case 'iyusan':       return 'イユサン棚田';
+          case 'agta':         return 'アグタビーチ';
+          case 'recoletos':    return 'レコレトスの滝';
+          case 'maripipi':     return 'マリピピ島';
+          case 'cabilao':      return 'カビラオ島';
+          default:             return title;
+        }
+      case 'ko':
+        switch (id.toLowerCase()) {
+          case 'sambawan':     return '삼바완 섬';
+          case 'tinago':        return '티나고 폭포';
+          case 'higatangan':   return '히가탕간 섬';
+          case 'ulan_ulan':
+          case 'ulan-ulan':    return '울란울란 폭포';
+          case 'canaan':       return '가나안 힐 농장';
+          case 'mainit':       return '마이닛 온천';
+          case 'tomalistalis': return '토말리스타리스 폭포';
+          case 'iyusan':       return '이유산 계단식 논';
+          case 'agta':         return '악타 해변';
+          case 'recoletos':    return '레콜레토스 폭포';
+          case 'maripipi':     return '마리피피 섬';
+          case 'cabilao':      return '카빌라오 섬';
+          default:             return title;
+        }
+      case 'en':
+      default:
+        return title;
+    }
+  }
+
   /// Convenience accessor for map widgets.
   DestinationLocation get destinationLocation => DestinationLocation(
     municipality:    municipality,
@@ -180,6 +295,122 @@ class DestinationItem {
     longitude:       lng,
     isFieldVerified: isFieldVerified,
   );
+
+  /// Factory constructor to parse MongoDB REST API JSON documents safely.
+  factory DestinationItem.fromJson(Map<String, dynamic> json) {
+    final locationMap = json['location'] as Map<String, dynamic>?;
+    final geoJsonMap = json['geoJson'] as Map<String, dynamic>?;
+    final coordinates = geoJsonMap?['coordinates'] as List?;
+
+    // CRITICAL: MongoDB GeoJSON coordinates are [longitude, latitude]
+    final double lng = (coordinates != null && coordinates.isNotEmpty)
+        ? (coordinates[0] as num).toDouble()
+        : (json['lng'] as num?)?.toDouble() ?? 0.0;
+    final double lat = (coordinates != null && coordinates.length > 1)
+        ? (coordinates[1] as num).toDouble()
+        : (json['lat'] as num?)?.toDouble() ?? 0.0;
+
+    final feesMap = json['fees'] as Map<String, dynamic>?;
+    final travelInfoMap = json['travelInfo'] as Map<String, dynamic>?;
+    final contentMap = json['content'] as Map<String, dynamic>?;
+    final galleryList = json['gallery'] as List?;
+
+    List<String> galleryUrls = [];
+    String coverUrl = 'assets/images/sambawan.jpg';
+
+    if (galleryList != null && galleryList.isNotEmpty) {
+      for (final item in galleryList) {
+        if (item is Map<String, dynamic> && item['url'] != null) {
+          final url = item['url'] as String;
+          galleryUrls.add(url);
+          if (item['isPrimary'] == true) {
+            coverUrl = url;
+          }
+        }
+      }
+      if (coverUrl == 'assets/images/sambawan.jpg' && galleryUrls.isNotEmpty) {
+        coverUrl = galleryUrls.first;
+      }
+    }
+
+    final categoryStr = json['category'] as String? ?? 'Island';
+    final difficultyStr = travelInfoMap?['difficulty'] as String? ?? 'Moderate';
+
+    return DestinationItem(
+      id: json['slug'] as String? ?? json['_id'] as String? ?? '',
+      title: json['name'] as String? ?? json['title'] as String? ?? '',
+      location: '${locationMap?['municipality'] ?? json['municipality'] ?? ''}, ${locationMap?['province'] ?? json['province'] ?? 'Biliran Province'}',
+      municipality: locationMap?['municipality'] as String? ?? json['municipality'] as String? ?? '',
+      province: locationMap?['province'] as String? ?? json['province'] as String? ?? 'Biliran Province',
+      category: categoryStr,
+      rating: (json['rating'] as num?)?.toDouble() ?? 4.5,
+      imageAsset: coverUrl,
+      description: json['description'] as String? ?? '',
+      categoryColor: _resolveCategoryColor(categoryStr),
+      lat: lat,
+      lng: lng,
+      isFieldVerified: json['isFieldVerified'] as bool? ?? false,
+      entranceFee: (feesMap?['entrance'] as num?)?.toInt() ?? (json['entranceFee'] as num?)?.toInt() ?? 0,
+      cottageFee: (feesMap?['cottage'] as num?)?.toInt() ?? (json['cottageFee'] as num?)?.toInt(),
+      envFee: (feesMap?['environmental'] as num?)?.toInt() ?? (json['envFee'] as num?)?.toInt() ?? 0,
+      bestSeason: travelInfoMap?['bestVisitingSeason'] as String? ?? json['bestSeason'] as String? ?? '',
+      difficulty: difficultyStr,
+      difficultyColor: _resolveDifficultyColor(difficultyStr),
+      travelTime: travelInfoMap?['estimatedTravelTimeFromNaval'] as String? ?? json['travelTime'] as String? ?? '',
+      estimatedFare: (travelInfoMap?['estimatedFareFromNaval'] as num?)?.toInt() ?? (json['estimatedFare'] as num?)?.toInt() ?? 0,
+      signal: travelInfoMap?['mobileSignal'] as String? ?? json['signal'] as String? ?? '',
+      thingsToDo: (contentMap?['thingsToDo'] as List?)?.map((e) => e.toString()).toList() ??
+          (json['thingsToDo'] as List?)?.map((e) => e.toString()).toList() ??
+          [],
+      whatToBring: (contentMap?['whatToBring'] as List?)?.map((e) => e.toString()).toList() ??
+          (json['whatToBring'] as List?)?.map((e) => e.toString()).toList() ??
+          [],
+      safetyReminders: (contentMap?['safetyReminders'] as List?)?.map((e) => e.toString()).toList() ??
+          (json['safetyReminders'] as List?)?.map((e) => e.toString()).toList() ??
+          [],
+      galleryAssets: galleryUrls.isNotEmpty
+          ? galleryUrls
+          : (json['galleryAssets'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      packages: (json['packages'] as List?)
+              ?.map((e) => TourPackage.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      recommendedRoutes: const [],
+    );
+  }
+
+  static Color _resolveCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'island':
+        return const Color(0xFF14B8A6);
+      case 'beach':
+        return const Color(0xFF3B82F6);
+      case 'falls':
+      case 'waterfall':
+        return const Color(0xFF06B6D4);
+      case 'forest':
+      case 'mountain':
+        return const Color(0xFF10B981);
+      case 'historical':
+        return const Color(0xFFD97706);
+      default:
+        return const Color(0xFF8B5CF6);
+    }
+  }
+
+  static Color _resolveDifficultyColor(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case 'easy':
+        return const Color(0xFF10B981);
+      case 'moderate':
+        return const Color(0xFFF59E0B);
+      case 'difficult':
+      case 'extreme':
+        return const Color(0xFFEF4444);
+      default:
+        return const Color(0xFF10B981);
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

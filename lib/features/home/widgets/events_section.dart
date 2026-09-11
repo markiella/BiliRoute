@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Event data model
 // ─────────────────────────────────────────────────────────────────────────────
@@ -153,14 +155,17 @@ class _EventCard extends StatelessWidget {
                           color:        Colors.white.withValues(alpha: 0.20),
                           borderRadius: BorderRadius.circular(99),
                         ),
-                        child: Text(
-                          '${e.daysLeft}d left',
-                          style: TextStyle(
-                            color:      Colors.white,
-                            fontSize:   8.5.sp,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
+                        child: Builder(builder: (ctx) {
+                          final l10n = AppLocalizations.of(ctx)!;
+                          return Text(
+                            l10n.daysLeft(e.daysLeft),
+                            style: TextStyle(
+                              color:      Colors.white,
+                              fontSize:   8.5.sp,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          );
+                        }),
                       ),
                     ],
                   ),
@@ -232,12 +237,15 @@ class _EventCard extends StatelessWidget {
                               color:        Colors.white,
                               borderRadius: BorderRadius.circular(99),
                             ),
-                            child: Text('Join',
-                                style: TextStyle(
-                                  color:      e.gradientColors.first,
-                                  fontSize:   9.sp,
-                                  fontWeight: FontWeight.w800,
-                                )),
+                            child: Builder(builder: (ctx) {
+                              final l10n = AppLocalizations.of(ctx)!;
+                              return Text(l10n.eventJoin,
+                                  style: TextStyle(
+                                    color:      e.gradientColors.first,
+                                    fontSize:   9.sp,
+                                    fontWeight: FontWeight.w800,
+                                  ));
+                            }),
                           ),
                         ],
                       ),

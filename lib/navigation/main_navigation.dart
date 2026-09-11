@@ -9,6 +9,7 @@ import '../features/home/home_page.dart';
 import '../features/itinerary/input/plan_trip_screen.dart';
 import '../features/map/map_preview_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../l10n/app_localizations.dart';
 
 // ── Tab model ──────────────────────────────────────────────────────────────────
 
@@ -54,48 +55,35 @@ class _MainNavigationState extends State<MainNavigation> {
     setState(() => _currentIndex = index);
   }
 
-  // 4 regular tabs — Routes (index 1) is the elevated centre circle
-  // Pill layout:  [Home]  [Map]  [●ROUTES●]  [Fare]  [Profile]
-  static const _tabs = [
-    _NavTab(
-      icon:       Icons.home_outlined,
-      activeIcon: Icons.home_rounded,
-      label:      'Home',
-    ),
-    _NavTab(
-      icon:       Icons.map_outlined,
-      activeIcon: Icons.map_rounded,
-      label:      'Map',
-    ),
-    _NavTab(
-      icon:       Icons.payments_outlined,
-      activeIcon: Icons.payments_rounded,
-      label:      'Fare',
-    ),
-    _NavTab(
-      icon:       Icons.person_outline_rounded,
-      activeIcon: Icons.person_rounded,
-      label:      'Profile',
-    ),
-  ];
-
   // Maps the 4 visual pill slot positions → actual IndexedStack indices
   // Slot:  [0=Home]  [1=Map]  [gap]  [2=Fare]  [3=Profile]
   // Index: [0]       [2]              [3]        [4]
   static const _tabIndices = [0, 2, 3, 4];
 
+  /// Build the 4 localized nav tabs from AppLocalizations.
+  List<_NavTab> _buildTabs(AppLocalizations l10n) => [
+    _NavTab(icon: Icons.home_outlined,    activeIcon: Icons.home_rounded,    label: l10n.navHome),
+    _NavTab(icon: Icons.map_outlined,     activeIcon: Icons.map_rounded,     label: l10n.navMap),
+    _NavTab(icon: Icons.payments_outlined, activeIcon: Icons.payments_rounded, label: l10n.navFare),
+    _NavTab(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: l10n.navProfile),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final l10n    = AppLocalizations.of(context)!;
+    final tabs    = _buildTabs(l10n);
+    final isDark  = Theme.of(context).brightness == Brightness.dark;
+
     // Height of the full floating assembly (pill + circle protrusion above pill)
     const pillH      = 64.0; // logical pixels — scaled with .h
-    const circleSize = 60.0; // slightly larger for the prominent Itinerary action
+    const circleSize = 60.0; // slightly larger for the prominent Routes action
     const protrusion = 16.0; // how many lp the circle rises above the pill top
 
     final navBarH      = (pillH + protrusion).h;
     final navClearance = navBarH + 20.h; // extra spacing for scrollable content
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundStart,
+      backgroundColor: isDark ? DarkColors.background : AppColors.backgroundStart,
       body: Stack(
         children: [
           // ── Tab screens (IndexedStack preserves state between tabs) ────────
@@ -121,13 +109,14 @@ class _MainNavigationState extends State<MainNavigation> {
             left:   20.w,
             right:  20.w,
             child: _CapsuleNavBar(
-              tabs:         _tabs,
+              tabs:         tabs,
               tabIndices:   _tabIndices,
               currentIndex: _currentIndex,
               onTap:        _switchTab,
               pillHeight:   pillH.h,
               circleSize:   circleSize.r,
               protrusion:   protrusion.h,
+              centreLabel:  l10n.navRoutes,
             ),
           ),
         ],
@@ -147,6 +136,7 @@ class _CapsuleNavBar extends StatelessWidget {
     required this.pillHeight,
     required this.circleSize,
     required this.protrusion,
+    required this.centreLabel,
   });
 
   final List<_NavTab>     tabs;
@@ -156,6 +146,7 @@ class _CapsuleNavBar extends StatelessWidget {
   final double            pillHeight;
   final double            circleSize;
   final double            protrusion;
+  final String            centreLabel;
 
   // Index 1 = Routes / Find Route (centre elevated button)
   static const int _planIndex = 1;
@@ -163,6 +154,7 @@ class _CapsuleNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totalH = pillHeight + protrusion;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SizedBox(
       height: totalH,
@@ -179,19 +171,15 @@ class _CapsuleNavBar extends StatelessWidget {
             child: Container(
               height: pillHeight,
               decoration: BoxDecoration(
-                color:        Colors.white,
+                color:        isDark ? DarkColors.card : Colors.white,
                 borderRadius: BorderRadius.circular(pillHeight / 2),
+                border:       isDark ? Border.all(color: DarkColors.border, width: 1) : null,
                 boxShadow: [
                   BoxShadow(
-                    color:        Colors.black.withValues(alpha: 0.10),
+                    color:        Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
                     blurRadius:   28,
                     offset:       const Offset(0, 8),
                     spreadRadius: 0,
-                  ),
-                  BoxShadow(
-                    color:      AppColors.primary.withValues(alpha: 0.05),
-                    blurRadius: 16,
-                    offset:     const Offset(0, 2),
                   ),
                 ],
               ),
@@ -236,12 +224,13 @@ class _CapsuleNavBar extends StatelessWidget {
             ),
           ),
 
-          // ── 2. Elevated centre Itinerary button ─────────────────────────
+          // ── 2. Elevated centre Routes button ─────────────────────────
           Positioned(
             bottom: pillHeight * 0.10,
             child: _CentreButton(
               selected: currentIndex == _planIndex,
               size:     circleSize,
+              label:    centreLabel,
               onTap:    () => onTap(_planIndex),
             ),
           ),
@@ -264,17 +253,20 @@ class _CentreButton extends StatelessWidget {
   const _CentreButton({
     required this.selected,
     required this.size,
+    required this.label,
     required this.onTap,
   });
 
   final bool         selected;
   final double       size;
+  final String       label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap:    onTap,
+      behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 280),
         curve:    Curves.easeOutBack,
@@ -282,12 +274,10 @@ class _CentreButton extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             begin:  Alignment.topLeft,
             end:    Alignment.bottomRight,
-            colors: selected
-                ? [const Color(0xFF1E3A8A), const Color(0xFF0EA5E9)]
-                : [const Color(0xFF1E3A8A), const Color(0xFF2563EB)],
+            colors: [Color(0xFF0A2E73), Color(0xFF3B82F6)],
           ),
           boxShadow: [
             BoxShadow(
@@ -319,7 +309,7 @@ class _CentreButton extends StatelessWidget {
               ),
               SizedBox(height: 2.h),
               Text(
-                'Routes',
+                label,
                 style: TextStyle(
                   color:      Colors.white,
                   fontSize:   8.5.sp,
@@ -351,6 +341,10 @@ class _PillTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark       = Theme.of(context).brightness == Brightness.dark;
+    final activeColor  = isDark ? AppColors.oceanCyan : AppColors.primary;
+    final inactiveColor = isDark ? DarkColors.subtext : const Color(0xFF94A3B8);
+
     return GestureDetector(
       onTap:    onTap,
       behavior: HitTestBehavior.opaque,
@@ -365,7 +359,7 @@ class _PillTab extends StatelessWidget {
               selected ? tab.activeIcon : tab.icon,
               key:   ValueKey(selected),
               size:  22.sp,
-              color: selected ? AppColors.primary : const Color(0xFF94A3B8),
+              color: selected ? activeColor : inactiveColor,
             ),
           ),
 

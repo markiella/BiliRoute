@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../widgets/fade_slide.dart';
+import '../../../widgets/search/voice_search_bar.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Hero image data — add/remove entries here to configure the slideshow
@@ -41,7 +42,11 @@ const _heroImages = <_HeroImage>[
 // ─────────────────────────────────────────────────────────────────────────────
 
 class CinematicHeader extends StatefulWidget {
-  const CinematicHeader({super.key});
+  const CinematicHeader({super.key, this.onQueryChanged});
+
+  /// Callback invoked whenever the search query changes (typed or voice).
+  /// Plugs directly into the parent's existing destination filter pipeline.
+  final ValueChanged<String>? onQueryChanged;
 
   /// Height of the hero area — same as the old AnimatedHeader.
   static double get heroH => 310.0;
@@ -129,12 +134,12 @@ class _CinematicHeaderState extends State<CinematicHeader>
       _nextIndex    = (_nextIndex + 1) % _heroImages.length;
     });
     _fadeCtrl.reset();
-    _scheduleNext();
   }
 
   @override
   Widget build(BuildContext context) {
     final heroH = CinematicHeader.heroH;
+    final l10n  = AppLocalizations.of(context);
 
     return SizedBox(
       height: heroH.h,
@@ -196,13 +201,14 @@ class _CinematicHeaderState extends State<CinematicHeader>
                         FadeSlide(
                           child: Row(children: [
                             Text(
-                              ' ',
+                              l10n?.homeHeroGreeting ?? 'Welcome to Biliran',
                               style: TextStyle(
                                 fontSize:   12.5.sp,
                                 fontWeight: FontWeight.w600,
                                 color:      Colors.white,
                               ),
                             ),
+                            SizedBox(width: 4.w),
                             const Text('👋',
                                 style: TextStyle(fontSize: 13)),
                           ]),
@@ -211,7 +217,7 @@ class _CinematicHeaderState extends State<CinematicHeader>
                         FadeSlide(
                           delay: 60.ms,
                           child: Text(
-                            'Travel smarter\nacross Biliran',
+                            l10n?.homeHeroTitle ?? 'Travel smarter\nacross Biliran',
                             style: TextStyle(
                               fontSize:   24.sp,
                               fontWeight: FontWeight.w800,
@@ -273,81 +279,17 @@ class _CinematicHeaderState extends State<CinematicHeader>
               ),
             ),
 
-            // ── Destination label (bottom-left, above search bar) ─────────
-            Positioned(
-              bottom: 58.h,
-              left:   20.w,
-              child: AnimatedSwitcher(
-                duration:  const Duration(milliseconds: 500),
-                child: Text(
-                  _heroImages[_currentIndex].label,
-                  key:   ValueKey(_currentIndex),
-                  style: TextStyle(
-                    color:      Colors.white.withValues(alpha: 0.80),
-                    fontSize:   11.sp,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                    shadows: const [
-                      Shadow(
-                        color:     Color(0x66000000),
-                        blurRadius: 6,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // ── Search bar (floats at bottom of hero) ─────────────────────
+              // ── Search bar (floats at bottom of hero) ──────────────────────
             Positioned(
               bottom: 12.h,
               left:   16.w,
               right:  16.w,
               child: FadeSlide(
                 delay: 130.ms,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
-                  decoration: BoxDecoration(
-                    color:        Colors.white.withValues(alpha: 0.96),
-                    borderRadius: BorderRadius.circular(16.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color:      Colors.black.withValues(alpha: 0.14),
-                        blurRadius: 16,
-                        offset:     const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search_rounded,
-                          color: AppColors.textSecondary, size: 22.sp),
-                      SizedBox(width: 10.w),
-                      Expanded(
-                        child: Text(
-                          'Find routes, providers, destinations...',
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            color:    AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        width:  36.r,
-                        height: 36.r,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin:  Alignment.topLeft,
-                            end:    Alignment.bottomRight,
-                            colors: [Color(0xFF3B82F6), Color(0xFF10B981)],
-                          ),
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                        child: Icon(Icons.tune_rounded,
-                            color: Colors.white, size: 18.sp),
-                      ),
-                    ],
-                  ),
+                child: VoiceSearchBar(
+                  hintText:       AppLocalizations.of(context)?.searchHint ??
+                                  'Find routes, providers, destinations...',
+                  onQueryChanged: widget.onQueryChanged ?? (_) {},
                 ),
               ),
             ),

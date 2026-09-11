@@ -7,6 +7,7 @@ import '../../core/router/app_router.dart';
 import '../../core/saved/saved_destinations_notifier.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/destination_model.dart';
+import '../destinations/repositories/destination_repository.dart';
 import '../../widgets/heart_button.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -21,7 +22,10 @@ class SavedDestinationsScreen extends StatelessWidget {
     final cs    = Theme.of(context).colorScheme;
     final saved = context.watch<SavedDestinationsNotifier>();
 
-    final savedDests = allBiliranDestinations
+    final repo  = context.watch<TouristDestinationRepository>();
+    final allDests = repo.destinations.isNotEmpty ? repo.destinations : allBiliranDestinations;
+
+    final savedDests = allDests
         .where((d) => saved.isSaved(d.id))
         .toList();
 
@@ -137,18 +141,31 @@ class _SavedDestinationTile extends StatelessWidget {
                   topLeft:    Radius.circular(16.r),
                   bottomLeft: Radius.circular(16.r),
                 ),
-                child: Image.asset(
-                  item.imageAsset,
-                  width:       110.w,
-                  height:      double.infinity,
-                  fit:         BoxFit.cover,
-                  errorBuilder: (_, e, s) => Container(
-                    width:  110.w,
-                    color:  AppColors.royalBlue.withValues(alpha: 0.15),
-                    child:  Icon(Icons.landscape_rounded,
-                        color: AppColors.royalBlue, size: 32.sp),
-                  ),
-                ),
+                child: item.imageAsset.startsWith('http')
+                    ? Image.network(
+                        item.imageAsset,
+                        width:       110.w,
+                        height:      double.infinity,
+                        fit:         BoxFit.cover,
+                        errorBuilder: (_, e, s) => Container(
+                          width:  110.w,
+                          color:  AppColors.royalBlue.withValues(alpha: 0.15),
+                          child:  Icon(Icons.landscape_rounded,
+                              color: AppColors.royalBlue, size: 32.sp),
+                        ),
+                      )
+                    : Image.asset(
+                        item.imageAsset,
+                        width:       110.w,
+                        height:      double.infinity,
+                        fit:         BoxFit.cover,
+                        errorBuilder: (_, e, s) => Container(
+                          width:  110.w,
+                          color:  AppColors.royalBlue.withValues(alpha: 0.15),
+                          child:  Icon(Icons.landscape_rounded,
+                              color: AppColors.royalBlue, size: 32.sp),
+                        ),
+                      ),
               ),
             ),
 

@@ -4,10 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/transitions/transition_data.dart';
+import '../../../data/models/destination_model.dart';
 import '../../../widgets/ambient/ambient_particles.dart';
+import '../../auth/repositories/auth_repository.dart';
+import '../../destinations/repositories/destination_repository.dart';
+import '../../recommendations/repositories/recommendation_repository.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Phase model
@@ -208,6 +213,7 @@ class _GeneratingScreenState extends State<GeneratingScreen>
       // Phase-specific animations
       if (phase == _LoadPhase.routeGeneration) {
         _routeController.forward(from: 0);
+        _triggerRecommendationQuery();
       }
       if (phase == _LoadPhase.finalizing) {
         _particleController.forward(from: 0);
@@ -223,6 +229,28 @@ class _GeneratingScreenState extends State<GeneratingScreen>
       AppRouter.itineraryResult,
       extra: widget.payload,
     );
+  }
+
+  void _triggerRecommendationQuery() {
+    try {
+      final destName = widget.payload?.destinationName ?? 'Sambawan Island';
+      final destRepo = context.read<TouristDestinationRepository>();
+      final destItem = destRepo.destinations.firstWhere(
+        (d) => d.title.toLowerCase().contains(destName.toLowerCase()) ||
+               destName.toLowerCase().contains(d.title.toLowerCase()),
+        orElse: () => allBiliranDestinations.first,
+      );
+
+      final prefProfile = AuthRepository.instance.isLoggedIn
+          ? AuthRepository.instance.currentSession.preferenceProfile
+          : 'recommended';
+
+      context.read<TouristRecommendationRepository>().fetchRecommendations(
+        destination: destItem,
+        originName: 'Naval',
+        preferenceProfile: prefProfile,
+      );
+    } catch (_) {}
   }
 
   @override

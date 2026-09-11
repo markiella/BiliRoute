@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/transitions/transition_data.dart';
+import '../../../data/models/destination_model.dart';
 import '../../../data/providers/biliran_providers.dart';
 import '../../../data/providers/service_provider.dart';
 import '../../../data/transport/biliran_route_options.dart';
@@ -14,6 +16,8 @@ import '../../../data/transport/transport_route.dart';
 import '../../../widgets/ambient/breathing_card.dart';
 import '../../../widgets/ambient/ocean_shimmer.dart';
 import '../../../widgets/provider_card.dart';
+import '../../destinations/repositories/destination_repository.dart';
+import '../../routes/repositories/route_repository.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Route Selection Screen
@@ -39,21 +43,22 @@ class RouteSelectionScreen extends StatefulWidget {
 class _RouteSelectionScreenState extends State<RouteSelectionScreen> {
   String? _selectedId;
 
-  late final List<RouteOption> _options;
-
   @override
   void initState() {
     super.initState();
-    _options = BiliranRouteOptions.forDestination(widget.destination);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final destRepo = context.read<TouristDestinationRepository>();
+      final destItem = destRepo.destinations.firstWhere(
+        (d) => d.title.toLowerCase().contains(widget.destination.toLowerCase()) ||
+               widget.destination.toLowerCase().contains(d.title.toLowerCase()),
+        orElse: () => allBiliranDestinations.first,
+      );
+      context.read<TouristRouteRepository>().fetchRoutesForDestination(destination: destItem);
+    });
   }
 
-  RouteOption? get _selected =>
-      _selectedId == null
-          ? null
-          : _options.firstWhere((o) => o.id == _selectedId);
-
-  void _proceed() {
-    if (_selected == null) return;
+  void _proceed(RouteOption? selected) {
+    if (selected == null) return;
     // Forward payload (with name update) to generating screen
     final payload = (widget.payload ?? TransitionPayload(
       destinationName: widget.destination,
@@ -64,6 +69,18 @@ class _RouteSelectionScreenState extends State<RouteSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final routeRepo = context.watch<TouristRouteRepository>();
+    final options = routeRepo.routeOptions.isNotEmpty
+        ? routeRepo.routeOptions
+        : BiliranRouteOptions.forDestination(widget.destination);
+
+    RouteOption? selected;
+    if (_selectedId != null) {
+      try {
+        selected = options.firstWhere((o) => o.id == _selectedId);
+      } catch (_) {}
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: MediaQuery.removePadding(
@@ -74,7 +91,7 @@ class _RouteSelectionScreenState extends State<RouteSelectionScreen> {
           slivers: [
 
           // ── Hero header ──────────────────────────────────────────────────
-          SliverToBoxAdapter(child: _buildHeader(context)),
+          SliverToBoxAdapter(child: _buildHeader(context, optionsCount: options.length)),
 
           // ── Source attribution ───────────────────────────────────────────
           SliverToBoxAdapter(
@@ -119,13 +136,13 @@ class _RouteSelectionScreenState extends State<RouteSelectionScreen> {
               (_, i) => Padding(
                 padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 12.h),
                 child: _RouteCard(
-                  option:     _options[i],
-                  isSelected: _options[i].id == _selectedId,
+                  option:     options[i],
+                  isSelected: options[i].id == _selectedId,
                   index:      i,
-                  onTap:      () => setState(() => _selectedId = _options[i].id),
+                  onTap:      () => setState(() => _selectedId = options[i].id),
                 ),
               ),
-              childCount: _options.length,
+              childCount: options.length,
             ),
           ),
 
@@ -135,8 +152,8 @@ class _RouteSelectionScreenState extends State<RouteSelectionScreen> {
               padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 40.h),
               child: _ProceedButton(
                 enabled:      _selectedId != null,
-                selectedFare: _selected?.totalFareLabel,
-                onTap:        _proceed,
+                selectedFare: selected?.totalFareLabel,
+                onTap:        () => _proceed(selected),
               ),
             ),
           ),
@@ -147,7 +164,7 @@ class _RouteSelectionScreenState extends State<RouteSelectionScreen> {
   }
 
   // ── Image-based hero header ────────────────────────────────────────────────
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, {int optionsCount = 3}) {
     final heroTag    = widget.payload?.heroTag    ?? 'dest_image_route';
     final imageAsset = widget.payload?.imageAsset ?? 'assets/images/sambawan.jpg';
     return SizedBox(
@@ -271,7 +288,7 @@ class _RouteSelectionScreenState extends State<RouteSelectionScreen> {
                     children: [
                       _HeaderChip(
                         icon:  Icons.route_rounded,
-                        label: '${_options.length} routes available',
+                        label: '$optionsCount routes available',
                       ),
                       SizedBox(width: 8.w),
                       _HeaderChip(

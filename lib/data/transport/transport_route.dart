@@ -79,6 +79,9 @@ class TransportRoute {
     this.fareSource   = 'Biliran Tourism Office',
     this.perPerson    = true,
     this.notes,
+    this.providerId,
+    this.providerName,
+    this.scheduleId,
   });
 
   /// Origin municipality or landmark.
@@ -104,6 +107,60 @@ class TransportRoute {
 
   /// Optional clarification note (e.g. "Shared charter, 8–12 pax").
   final String? notes;
+
+  /// Optional provider reference ID.
+  final String? providerId;
+
+  /// Optional provider name.
+  final String? providerName;
+
+  /// Optional schedule reference ID.
+  final String? scheduleId;
+
+  /// Factory constructor parsing backend embedded step JSON.
+  factory TransportRoute.fromJson(Map<String, dynamic> json) {
+    final modeStr = json['transportMode'] as String? ?? json['type'] as String? ?? 'Multicab';
+    final fareTypeStr = json['fareType'] as String? ?? 'per_person';
+
+    return TransportRoute(
+      origin: json['fromName'] as String? ?? json['origin'] as String? ?? '',
+      destination: json['toName'] as String? ?? json['destination'] as String? ?? '',
+      type: _mapTransportType(modeStr),
+      officialFare: (json['farePHP'] as num?)?.toInt() ?? (json['officialFare'] as num?)?.toInt() ?? 0,
+      durationMinutes: (json['durationMinutes'] as num?)?.toInt() ?? 0,
+      fareSource: json['fareSource'] as String? ?? 'Biliran Tourism Office',
+      perPerson: fareTypeStr != 'per_charter',
+      notes: json['transferNote'] as String? ?? json['notes'] as String?,
+      providerId: json['providerId'] as String?,
+      providerName: json['providerName'] as String?,
+      scheduleId: json['scheduleId'] as String?,
+    );
+  }
+
+  static TransportType _mapTransportType(String raw) {
+    switch (raw.toLowerCase().replaceAll('-', '').replaceAll(' ', '')) {
+      case 'multicab':
+        return TransportType.multicab;
+      case 'van':
+        return TransportType.van;
+      case 'jeepney':
+        return TransportType.jeepney;
+      case 'habalhabal':
+        return TransportType.habalHabal;
+      case 'boat':
+        return TransportType.boat;
+      case 'boatcharter':
+        return TransportType.boatCharter;
+      case 'tricycle':
+        return TransportType.tricycle;
+      case 'bus':
+        return TransportType.bus;
+      case 'ferry':
+        return TransportType.ferry;
+      default:
+        return TransportType.multicab;
+    }
+  }
 
   // ── Derived helpers ─────────────────────────────────────────────────────────
 

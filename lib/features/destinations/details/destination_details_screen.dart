@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/router/app_router.dart';
+import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/transitions/transition_data.dart';
 import '../../../data/models/destination_model.dart';
@@ -243,14 +245,23 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
             height: maxH + 60.h,
             child: Hero(
               tag: item.heroTag,
-              child: Image.asset(
-                item.imageAsset,
-                fit:          BoxFit.cover,
-                alignment:    Alignment.center,
-                errorBuilder: (_, e, s) => Container(
-                  decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
-                ),
-              ),
+              child: item.imageAsset.startsWith('http')
+                  ? Image.network(
+                      item.imageAsset,
+                      fit:          BoxFit.cover,
+                      alignment:    Alignment.center,
+                      errorBuilder: (_, e, s) => Container(
+                        decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+                      ),
+                    )
+                  : Image.asset(
+                      item.imageAsset,
+                      fit:          BoxFit.cover,
+                      alignment:    Alignment.center,
+                      errorBuilder: (_, e, s) => Container(
+                        decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+                      ),
+                    ),
             ),
           ),
 
@@ -718,11 +729,23 @@ class _GallerySection extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.asset(images[i], fit: BoxFit.cover,
-                        errorBuilder: (_, e, s) => Container(
-                          decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
-                          child: const Icon(Icons.image_rounded, color: Colors.white54, size: 40),
-                        )),
+                    images[i].startsWith('http')
+                        ? Image.network(
+                            images[i],
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, e, s) => Container(
+                              decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+                              child: const Icon(Icons.image_rounded, color: Colors.white54, size: 40),
+                            ),
+                          )
+                        : Image.asset(
+                            images[i],
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, e, s) => Container(
+                              decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+                              child: const Icon(Icons.image_rounded, color: Colors.white54, size: 40),
+                            ),
+                          ),
                     // Fullscreen hint
                     Positioned(
                       bottom: 12.h, right: 12.w,
@@ -1000,7 +1023,6 @@ class _ProvidersSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Fallback: show generic boat operators if no match
     final display = providers.isNotEmpty
         ? providers
         : BiliranProviders.byType(ProviderType.boatOperator).take(3).toList();
@@ -1050,7 +1072,6 @@ class _ProviderCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Avatar
           Container(
             width: 46.r, height: 46.r,
             decoration: BoxDecoration(
@@ -1060,7 +1081,6 @@ class _ProviderCard extends StatelessWidget {
             child: Icon(provider.type.icon, color: Colors.white, size: 22.sp),
           ),
           SizedBox(width: 12.w),
-          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1092,7 +1112,6 @@ class _ProviderCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: 8.w),
-          // Call button
           GestureDetector(
             onTap: () {},
             child: Container(
@@ -1111,10 +1130,9 @@ class _ProviderCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Location & Navigation Section — working map + info card
+// Location & Navigation Section
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Default prototype origin: Naval Terminal (land departure hub)
 const _kNavalTerminal = LatLng(11.5602, 124.3973);
 const _kNavalTerminalName = 'Naval Terminal';
 
@@ -1127,36 +1145,92 @@ class _MiniMapSection extends StatefulWidget {
 
 class _MiniMapSectionState extends State<_MiniMapSection> {
   final Completer<GoogleMapController> _mapCompleter = Completer();
+  final LocationService _locationService = LocationService();
+  Position? _userPosition;
+  StreamSubscription<Position>? _positionStreamSub;
 
   DestinationItem get item => widget.item;
 
-  // Destination LatLng read from the verified model
   LatLng get _destLoc => LatLng(item.lat, item.lng);
+
+  LatLng get _originLoc => _userPosition != null
+      ? LatLng(_userPosition!.latitude, _userPosition!.longitude)
+      : _kNavalTerminal;
+
+  String get _originName => _userPosition != null ? 'Your Location' : _kNavalTerminalName;
+
+  @override
+  void initState() {
+    super.initState();
+    _initUserLocation();
+  }
+
+  Future<void> _initUserLocation() async {
+    try {
+      final res = await _locationService.getCurrentPosition();
+      if (res.isSuccess && res.position != null && mounted) {
+        setState(() {
+          _userPosition = res.position;
+        });
+        if (_mapCompleter.isCompleted) {
+          final ctrl = await _mapCompleter.future;
+          _fitBounds(ctrl);
+        }
+      }
+    } catch (_) {}
+
+    _positionStreamSub = _locationService.getPositionStream().listen((pos) {
+      if (mounted) {
+        setState(() {
+          _userPosition = pos;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _positionStreamSub?.cancel();
     _mapCompleter.future.then((ctrl) => ctrl.dispose());
     super.dispose();
   }
 
-  // Fit camera to show both origin + destination with padding
   Future<void> _fitBounds(GoogleMapController ctrl) async {
     final bounds = LatLngBounds(
       southwest: LatLng(
-        _kNavalTerminal.latitude  < _destLoc.latitude  ? _kNavalTerminal.latitude  : _destLoc.latitude,
-        _kNavalTerminal.longitude < _destLoc.longitude ? _kNavalTerminal.longitude : _destLoc.longitude,
+        _originLoc.latitude  < _destLoc.latitude  ? _originLoc.latitude  : _destLoc.latitude,
+        _originLoc.longitude < _destLoc.longitude ? _originLoc.longitude : _destLoc.longitude,
       ),
       northeast: LatLng(
-        _kNavalTerminal.latitude  > _destLoc.latitude  ? _kNavalTerminal.latitude  : _destLoc.latitude,
-        _kNavalTerminal.longitude > _destLoc.longitude ? _kNavalTerminal.longitude : _destLoc.longitude,
+        _originLoc.latitude  > _destLoc.latitude  ? _originLoc.latitude  : _destLoc.latitude,
+        _originLoc.longitude > _destLoc.longitude ? _originLoc.longitude : _destLoc.longitude,
       ),
     );
-    // Small delay to let the map initialise before animating
     await Future<void>.delayed(const Duration(milliseconds: 400));
     if (mounted) {
       await ctrl.animateCamera(
         CameraUpdate.newLatLngBounds(bounds, 52),
       );
+    }
+  }
+
+  Future<void> _onLocateMe() async {
+    final res = await _locationService.getCurrentPosition();
+    if (!res.isSuccess) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res.message),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+      return;
+    }
+    if (res.position != null && mounted) {
+      setState(() => _userPosition = res.position);
+      final ctrl = await _mapCompleter.future;
+      _fitBounds(ctrl);
     }
   }
 
@@ -1183,7 +1257,6 @@ class _MiniMapSectionState extends State<_MiniMapSection> {
         ),
         SizedBox(height: 14.h),
 
-        // ── Embedded Google Map ──────────────────────────────────────────────
         ClipRRect(
           borderRadius: BorderRadius.circular(20.r),
           child: Container(
@@ -1198,13 +1271,11 @@ class _MiniMapSectionState extends State<_MiniMapSection> {
             ),
             child: Stack(
               children: [
-
-                // Google Maps — all coordinates consumed from item model
                 GoogleMap(
                   initialCameraPosition: CameraPosition(
                     target: LatLng(
-                      (_kNavalTerminal.latitude  + _destLoc.latitude)  / 2,
-                      (_kNavalTerminal.longitude + _destLoc.longitude) / 2,
+                      (_originLoc.latitude  + _destLoc.latitude)  / 2,
+                      (_originLoc.longitude + _destLoc.longitude) / 2,
                     ),
                     zoom: 8.8,
                   ),
@@ -1219,18 +1290,16 @@ class _MiniMapSectionState extends State<_MiniMapSection> {
                   rotateGesturesEnabled:   false,
 
                   markers: {
-                    // ① Naval Terminal — origin marker (blue)
                     Marker(
                       markerId:   const MarkerId('origin'),
-                      position:   _kNavalTerminal,
+                      position:   _originLoc,
                       icon:       BitmapDescriptor.defaultMarkerWithHue(
                                     BitmapDescriptor.hueAzure),
-                      infoWindow: const InfoWindow(
-                        title:   '🚐 Naval Terminal',
-                        snippet: 'Prototype origin point',
+                      infoWindow: InfoWindow(
+                        title:   _userPosition != null ? '📍 Your Location' : '🚐 Naval Terminal',
+                        snippet: _userPosition != null ? 'Real-time device location' : 'Default origin point',
                       ),
                     ),
-                    // ② Destination — field-verified if isFieldVerified
                     Marker(
                       markerId:   const MarkerId('destination'),
                       position:   _destLoc,
@@ -1248,10 +1317,9 @@ class _MiniMapSectionState extends State<_MiniMapSection> {
                   },
 
                   polylines: {
-                    // Route preview polyline (Naval → Destination)
                     Polyline(
                       polylineId: const PolylineId('preview_route'),
-                      points:     [_kNavalTerminal, _destLoc],
+                      points:     [_originLoc, _destLoc],
                       color:      const Color(0xFF60A5FA),
                       width:      3,
                       patterns:   [PatternItem.dash(22), PatternItem.gap(14)],
@@ -1259,16 +1327,14 @@ class _MiniMapSectionState extends State<_MiniMapSection> {
                   },
 
                   circles: {
-                    // Pulsing origin circle
                     Circle(
                       circleId:    const CircleId('origin_pulse'),
-                      center:      _kNavalTerminal,
+                      center:      _originLoc,
                       radius:      700,
                       fillColor:   const Color(0x223B82F6),
                       strokeColor: const Color(0xFF3B82F6),
                       strokeWidth: 2,
                     ),
-                    // Destination glow
                     Circle(
                       circleId:    const CircleId('dest_glow'),
                       center:      _destLoc,
@@ -1284,7 +1350,6 @@ class _MiniMapSectionState extends State<_MiniMapSection> {
                   },
                 ),
 
-                // ── Route label chip (top-left) ──────────────────────────
                 Positioned(
                   top: 12.h, left: 12.w,
                   child: Container(
@@ -1298,14 +1363,13 @@ class _MiniMapSectionState extends State<_MiniMapSection> {
                       Icon(Icons.route_rounded, color: const Color(0xFF60A5FA), size: 12.sp),
                       SizedBox(width: 5.w),
                       Text(
-                        '$_kNavalTerminalName → ${item.title.split(' ').first}',
+                        '$_originName → ${item.title.split(' ').first}',
                         style: TextStyle(color: Colors.white, fontSize: 10.5.sp, fontWeight: FontWeight.w600),
                       ),
                     ]),
                   ),
                 ),
 
-                // ── Travel time chip (top-right) ─────────────────────────
                 Positioned(
                   top: 12.h, right: 12.w,
                   child: Container(
@@ -1325,7 +1389,22 @@ class _MiniMapSectionState extends State<_MiniMapSection> {
                   ),
                 ),
 
-                // ── Field-verified badge (bottom-left, only for verified) ─
+                Positioned(
+                  top: 52.h, right: 12.w,
+                  child: GestureDetector(
+                    onTap: _onLocateMe,
+                    child: Container(
+                      padding: EdgeInsets.all(8.r),
+                      decoration: BoxDecoration(
+                        color:        Colors.black.withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(10.r),
+                        border:       Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                      ),
+                      child: Icon(Icons.my_location_rounded, color: const Color(0xFF60A5FA), size: 16.sp),
+                    ),
+                  ),
+                ),
+
                 if (item.isFieldVerified)
                   Positioned(
                     bottom: 12.h, left: 12.w,
@@ -1347,7 +1426,6 @@ class _MiniMapSectionState extends State<_MiniMapSection> {
                     ),
                   ),
 
-                // ── Navigate CTA (bottom-right) ──────────────────────────
                 Positioned(
                   bottom: 12.h, right: 12.w,
                   child: GestureDetector(
@@ -1377,20 +1455,24 @@ class _MiniMapSectionState extends State<_MiniMapSection> {
 
         SizedBox(height: 14.h),
 
-        // ── Navigation Info Card ─────────────────────────────────────────────
-        _NavigationInfoCard(item: item, onFindRoute: () => _navigateToRouteSelection(context)),
+        _NavigationInfoCard(
+          item: item,
+          userPosition: _userPosition,
+          onFindRoute: () => _navigateToRouteSelection(context),
+        ),
       ],
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Navigation Info Card — route summary below the mini-map
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _NavigationInfoCard extends StatelessWidget {
-  const _NavigationInfoCard({required this.item, required this.onFindRoute});
+  const _NavigationInfoCard({
+    required this.item,
+    required this.userPosition,
+    required this.onFindRoute,
+  });
   final DestinationItem item;
+  final Position?       userPosition;
   final VoidCallback    onFindRoute;
 
   @override
@@ -1412,8 +1494,6 @@ class _NavigationInfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          // Header
           Container(
             padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 12.h),
             decoration: BoxDecoration(
@@ -1450,8 +1530,6 @@ class _NavigationInfoCard extends StatelessWidget {
                 ),
             ]),
           ),
-
-          // Info grid
           Padding(
             padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 14.h),
             child: Column(
@@ -1460,7 +1538,9 @@ class _NavigationInfoCard extends StatelessWidget {
                   icon:  Icons.trip_origin_rounded,
                   color: const Color(0xFF3B82F6),
                   label: 'From',
-                  value: _kNavalTerminalName,
+                  value: userPosition != null
+                      ? 'Your Location (${userPosition!.latitude.toStringAsFixed(4)}, ${userPosition!.longitude.toStringAsFixed(4)})'
+                      : _kNavalTerminalName,
                 ),
                 _NavInfoRow(
                   icon:  Icons.location_on_rounded,
@@ -1487,7 +1567,6 @@ class _NavigationInfoCard extends StatelessWidget {
                   value: hasSeaRoute ? 'Land + Sea Route' : 'Land Route',
                 ),
                 Divider(height: 18.h, color: AppColors.divider),
-                // Coordinates row
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1546,8 +1625,6 @@ class _NavigationInfoCard extends StatelessWidget {
                   ],
                 ),
                 SizedBox(height: 14.h),
-
-                // Action buttons
                 Row(children: [
                   Expanded(
                     flex: 3,

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import 'animated_password_visibility.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Design tokens for auth screens
@@ -196,6 +198,7 @@ class AuthTextField extends StatefulWidget {
     this.isPassword      = false,
     this.keyboardType    = TextInputType.text,
     this.textInputAction = TextInputAction.next,
+    this.errorText,
     this.onSubmitted,
     this.validator,
   });
@@ -206,6 +209,7 @@ class AuthTextField extends StatefulWidget {
   final bool                       isPassword;
   final TextInputType              keyboardType;
   final TextInputAction            textInputAction;
+  final String?                    errorText;
   final ValueChanged<String>?      onSubmitted;
   final String? Function(String?)? validator;
 
@@ -233,64 +237,83 @@ class _AuthTextFieldState extends State<AuthTextField> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      decoration: BoxDecoration(
-        color:        _kFieldBg,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: _focused ? _kTeal : _kFieldBorder,
-          width: _focused ? 1.6 : 1.0,
-        ),
-        boxShadow: _focused
-            ? [BoxShadow(
-                color:      _kTeal.withValues(alpha: 0.12),
-                blurRadius: 8,
-                offset:     const Offset(0, 2),
-              )]
-            : [],
-      ),
-      child: TextFormField(
-        controller:       widget.controller,
-        focusNode:        _focus,
-        obscureText:      widget.isPassword && _obscure,
-        keyboardType:     widget.keyboardType,
-        textInputAction:  widget.textInputAction,
-        onFieldSubmitted: widget.onSubmitted,
-        validator:        widget.validator,
-        style: TextStyle(
-          color:      AppColors.textPrimary,
-          fontSize:   13.5.sp,
-          fontWeight: FontWeight.w500,
-        ),
-        decoration: InputDecoration(
-          hintText:  widget.hint,
-          hintStyle: TextStyle(
-            color:    const Color(0xFF94A3B8),
-            fontSize: 13.sp,
+    final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color:        hasError ? const Color(0xFFFEF2F2) : _kFieldBg,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: hasError
+                  ? const Color(0xFFEF4444)
+                  : (_focused ? _kTeal : _kFieldBorder),
+              width: (hasError || _focused) ? 1.6 : 1.0,
+            ),
+            boxShadow: _focused && !hasError
+                ? [BoxShadow(
+                    color:      _kTeal.withValues(alpha: 0.12),
+                    blurRadius: 8,
+                    offset:     const Offset(0, 2),
+                  )]
+                : [],
           ),
-          prefixIcon: Icon(
-            widget.icon,
-            color: _focused ? _kTeal : const Color(0xFF94A3B8),
-            size:  18.sp,
+          child: TextFormField(
+            controller:       widget.controller,
+            focusNode:        _focus,
+            obscureText:      widget.isPassword && _obscure,
+            keyboardType:     widget.keyboardType,
+            textInputAction:  widget.textInputAction,
+            onFieldSubmitted: widget.onSubmitted,
+            validator:        widget.validator,
+            style: TextStyle(
+              color:      AppColors.textPrimary,
+              fontSize:   13.5.sp,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText:  widget.hint,
+              hintStyle: TextStyle(
+                color:    const Color(0xFF94A3B8),
+                fontSize: 13.sp,
+              ),
+              prefixIcon: Icon(
+                widget.icon,
+                color: hasError
+                    ? const Color(0xFFEF4444)
+                    : (_focused ? _kTeal : const Color(0xFF94A3B8)),
+                size:  18.sp,
+              ),
+              suffixIcon: widget.isPassword
+                  ? AnimatedPasswordVisibility(
+                      isVisible: !_obscure,
+                      onTap:     () => setState(() => _obscure = !_obscure),
+                    )
+                  : null,
+              border:         InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                  horizontal: 4.w, vertical: 14.h),
+            ),
           ),
-          suffixIcon: widget.isPassword
-              ? IconButton(
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                  icon: Icon(
-                    _obscure
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    color: const Color(0xFF94A3B8),
-                    size:  17.sp,
-                  ),
-                )
-              : null,
-          border:         InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(
-              horizontal: 4.w, vertical: 14.h),
         ),
-      ),
+        if (hasError) ...[
+          SizedBox(height: 4.h),
+          Padding(
+            padding: EdgeInsets.only(left: 4.w),
+            child: Text(
+              widget.errorText!,
+              style: TextStyle(
+                color:      const Color(0xFFEF4444),
+                fontSize:   11.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -303,13 +326,13 @@ class AuthCTAButton extends StatefulWidget {
   const AuthCTAButton({
     super.key,
     required this.label,
-    required this.onTap,
+    this.onTap,
     this.isLoading = false,
     this.gradient,
   });
 
   final String          label;
-  final VoidCallback    onTap;
+  final VoidCallback?   onTap;
   final bool            isLoading;
   final LinearGradient? gradient;
 
@@ -330,8 +353,8 @@ class _AuthCTAButtonState extends State<AuthCTAButton> {
         );
 
     return GestureDetector(
-      onTapDown:   (_) => setState(() => _pressed = true),
-      onTapUp:     (_) { setState(() => _pressed = false); widget.onTap(); },
+      onTapDown:   (_) { if (widget.onTap != null) setState(() => _pressed = true); },
+      onTapUp:     (_) { setState(() => _pressed = false); widget.onTap?.call(); },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 130),
@@ -625,6 +648,477 @@ class AuthTrustBadge extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ValidationText — inline ✓ / ✕ rule indicator
+// ─────────────────────────────────────────────────────────────────────────────
+
+class ValidationText extends StatelessWidget {
+  const ValidationText({
+    super.key,
+    required this.label,
+    required this.isPassed,
+    this.color,
+  });
+
+  final String label;
+  final bool   isPassed;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveColor = color ??
+        (isPassed ? const Color(0xFF10B981) : AppColors.textSecondary);
+    return Padding(
+      padding: EdgeInsets.only(bottom: 3.h),
+      child: Row(
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: Icon(
+              isPassed ? Icons.check_circle_rounded : Icons.cancel_rounded,
+              key:   ValueKey('$isPassed-${effectiveColor.toARGB32()}'),
+              color: effectiveColor,
+              size:  14.sp,
+            ),
+          ),
+          SizedBox(width: 6.w),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.5.sp,
+                color:    effectiveColor,
+                fontWeight: isPassed ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PasswordStrengthIndicator — animated strength bar + label
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PasswordStrength { empty, weak, fair, strong }
+
+/// Compute strength from a password string.
+PasswordStrength passwordStrength(String pw) {
+  if (pw.isEmpty) return PasswordStrength.empty;
+  int score = 0;
+  if (pw.length >= 8)                               score++;
+  if (RegExp(r'[A-Z]').hasMatch(pw))                score++;
+  if (RegExp(r'[a-z]').hasMatch(pw))                score++;
+  if (RegExp(r'[0-9]').hasMatch(pw))                score++;
+  if (RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(pw)) score++;
+  if (score <= 1) return PasswordStrength.weak;
+  if (score <= 3) return PasswordStrength.fair;
+  return PasswordStrength.strong;
+}
+
+class PasswordStrengthIndicator extends StatelessWidget {
+  const PasswordStrengthIndicator({super.key, required this.password});
+
+  final String password;
+
+  @override
+  Widget build(BuildContext context) {
+    final strength = passwordStrength(password);
+    if (strength == PasswordStrength.empty) return const SizedBox.shrink();
+
+    final (label, color, filled) = switch (strength) {
+      PasswordStrength.weak   => ('Weak',   const Color(0xFFEF4444), 1),
+      PasswordStrength.fair   => ('Fair',   const Color(0xFFF59E0B), 2),
+      PasswordStrength.strong => ('Strong', const Color(0xFF10B981), 3),
+      PasswordStrength.empty  => ('',       Colors.transparent,       0),
+    };
+
+    return Padding(
+      padding: EdgeInsets.only(top: 8.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Three segment bar
+          Row(
+            children: List.generate(3, (i) {
+              final active = i < filled;
+              return Expanded(
+                child: Container(
+                  height: 4.h,
+                  margin: EdgeInsets.only(right: i < 2 ? 4.w : 0),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: active ? color : const Color(0xFFE2E8F0),
+                  ),
+                )
+                    .animate(target: active ? 1 : 0)
+                    .custom(
+                      duration: const Duration(milliseconds: 350),
+                      builder: (_, val, child) => Opacity(
+                        opacity: active ? 1.0 : 0.4,
+                        child: child,
+                      ),
+                    ),
+              );
+            }),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            'Password strength: $label',
+            style: TextStyle(
+              fontSize:   10.5.sp,
+              color:      color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OtpInputWidget — 6 individual styled boxes
+// ─────────────────────────────────────────────────────────────────────────────
+
+class OtpInputWidget extends StatefulWidget {
+  const OtpInputWidget({
+    super.key,
+    required this.onCompleted,
+    this.onChanged,
+    this.hasError = false,
+  });
+
+  /// Called when all 6 digits have been entered.
+  final ValueChanged<String> onCompleted;
+
+  /// Called on every change with the current partial OTP.
+  final ValueChanged<String>? onChanged;
+
+  /// When true, boxes flash red.
+  final bool hasError;
+
+  @override
+  State<OtpInputWidget> createState() => OtpInputWidgetState();
+}
+
+class OtpInputWidgetState extends State<OtpInputWidget> {
+  final _controllers = List.generate(6, (_) => TextEditingController());
+  final _focusNodes  = List.generate(6, (_) => FocusNode());
+
+  String get currentOtp =>
+      _controllers.map((c) => c.text).join();
+
+  /// Clear all boxes and refocus first box.
+  void clear() {
+    for (final c in _controllers) {
+      c.clear();
+    }
+    _focusNodes[0].requestFocus();
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers) { c.dispose(); }
+    for (final f in _focusNodes)  { f.dispose(); }
+    super.dispose();
+  }
+
+  void _onChanged(int index, String value) {
+    if (value.length > 1) {
+      // Handle paste — distribute digits
+      final digits = value.replaceAll(RegExp(r'\D'), '').split('');
+      for (var i = 0; i < 6 && i < digits.length; i++) {
+        _controllers[i].text = digits[i];
+      }
+      final next = (digits.length - 1).clamp(0, 5);
+      _focusNodes[next].requestFocus();
+    } else if (value.isNotEmpty) {
+      if (index < 5) _focusNodes[index + 1].requestFocus();
+    }
+
+    final otp = currentOtp;
+    widget.onChanged?.call(otp);
+    if (otp.length == 6) widget.onCompleted(otp);
+    setState(() {});
+  }
+
+  void _onKeyEvent(int index, KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey.keyLabel == 'Backspace' &&
+        _controllers[index].text.isEmpty &&
+        index > 0) {
+      _focusNodes[index - 1].requestFocus();
+      _controllers[index - 1].clear();
+      setState(() {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(6, (i) {
+        final active  = _focusNodes[i].hasFocus;
+        final filled  = _controllers[i].text.isNotEmpty;
+        final errored = widget.hasError;
+
+        final borderColor = errored
+            ? const Color(0xFFEF4444)
+            : active
+                ? _kTeal
+                : filled
+                    ? _kNavy.withValues(alpha: 0.4)
+                    : _kFieldBorder;
+
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4.w),
+          child: KeyboardListener(
+            focusNode: FocusNode(),
+            onKeyEvent: (e) => _onKeyEvent(i, e),
+            child: SizedBox(
+              width:  44.w,
+              height: 52.h,
+              child: TextFormField(
+                controller:  _controllers[i],
+                focusNode:   _focusNodes[i],
+                keyboardType: TextInputType.number,
+                textAlign:   TextAlign.center,
+                maxLength:   1,
+                onChanged:   (v) => _onChanged(i, v),
+                buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
+                style: TextStyle(
+                  fontSize:   20.sp,
+                  fontWeight: FontWeight.w800,
+                  color:      errored ? const Color(0xFFEF4444) : _kNavy,
+                ),
+                decoration: InputDecoration(
+                  filled:      true,
+                  fillColor:   errored
+                      ? const Color(0xFFFEF2F2)
+                      : active
+                          ? _kTeal.withValues(alpha: 0.06)
+                          : _kFieldBg,
+                  contentPadding: EdgeInsets.zero,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: borderColor, width: 1.5),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: borderColor, width: 1.5),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide(color: borderColor, width: 2),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        )
+            .animate(target: errored ? 1 : 0)
+            .shake(hz: 4, offset: const Offset(3, 0), duration: 500.ms);
+      }),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CountdownTimer — MM:SS live countdown with onExpired callback
+// ─────────────────────────────────────────────────────────────────────────────
+
+class CountdownTimer extends StatefulWidget {
+  const CountdownTimer({
+    super.key,
+    this.durationSeconds = 300, // 5 minutes
+    required this.onExpired,
+    this.onReset,
+  });
+
+  final int         durationSeconds;
+  final VoidCallback onExpired;
+  final VoidCallback? onReset;
+
+  @override
+  State<CountdownTimer> createState() => CountdownTimerState();
+}
+
+class CountdownTimerState extends State<CountdownTimer> {
+  late int _remaining;
+  bool _expired = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _remaining = widget.durationSeconds;
+    _tick();
+  }
+
+  void reset() {
+    setState(() {
+      _remaining = widget.durationSeconds;
+      _expired   = false;
+    });
+    _tick();
+  }
+
+  void _tick() async {
+    while (mounted && _remaining > 0) {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return;
+      setState(() => _remaining--);
+    }
+    if (mounted && _remaining == 0 && !_expired) {
+      setState(() => _expired = true);
+      widget.onExpired();
+    }
+  }
+
+  String get _display {
+    final m = (_remaining ~/ 60).toString().padLeft(2, '0');
+    final s = (_remaining  %  60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: Text(
+        _display,
+        key: ValueKey(_remaining),
+        style: TextStyle(
+          fontSize:   22.sp,
+          fontWeight: FontWeight.w800,
+          color:      _remaining <= 30
+              ? const Color(0xFFEF4444)
+              : _kNavy,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VerificationSuccessOverlay — full-screen animated success state
+// ─────────────────────────────────────────────────────────────────────────────
+
+class VerificationSuccessOverlay extends StatefulWidget {
+  const VerificationSuccessOverlay({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.onDone,
+    this.doneLabel = 'Continue',
+  });
+
+  final String       title;
+  final String       subtitle;
+  final VoidCallback onDone;
+  final String       doneLabel;
+
+  @override
+  State<VerificationSuccessOverlay> createState() =>
+      _VerificationSuccessOverlayState();
+}
+
+class _VerificationSuccessOverlayState
+    extends State<VerificationSuccessOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double>   _scale;
+  late final Animation<double>   _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl  = AnimationController(vsync: this, duration: 700.ms);
+    _scale = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
+    _fade  = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: Container(
+        color: Colors.white,
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 32.w),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Animated check circle
+                ScaleTransition(
+                  scale: _scale,
+                  child: Container(
+                    width:  96.r,
+                    height: 96.r,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF10B981),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.check_rounded,
+                      color: Colors.white,
+                      size:  52.sp,
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 28.h),
+
+                Text(
+                  widget.title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize:   22.sp,
+                    fontWeight: FontWeight.w900,
+                    color:      _kNavy,
+                    height:     1.2,
+                  ),
+                ).animate(delay: 400.ms).fade(duration: 400.ms).slideY(begin: 0.1, end: 0),
+
+                SizedBox(height: 10.h),
+
+                Text(
+                  widget.subtitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    color:    AppColors.textSecondary,
+                    height:   1.55,
+                  ),
+                ).animate(delay: 500.ms).fade(duration: 400.ms),
+
+                SizedBox(height: 40.h),
+
+                AuthCTAButton(
+                  label: widget.doneLabel,
+                  onTap: widget.onDone,
+                ).animate(delay: 650.ms).fade(duration: 400.ms).slideY(begin: 0.08, end: 0),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -3,15 +3,28 @@ import 'package:flutter/material.dart';
 import '../../../data/transport/transport_route.dart';
 import '../models/admin_route.dart';
 import 'base_repository.dart';
+import '../services/route_admin_api_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RouteRepository — Seeded with Biliran route options
 // ─────────────────────────────────────────────────────────────────────────────
 
 class RouteRepository extends BaseRepository<AdminRoute> {
-  RouteRepository() {
+  final RouteAdminApiService _apiService;
+
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _isUsingFallback = false;
+
+  RouteRepository({RouteAdminApiService? apiService})
+      : _apiService = apiService ?? RouteAdminApiService() {
     _seedRoutes();
+    fetchRoutes();
   }
+
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  bool get isUsingFallback => _isUsingFallback;
 
   void _seedRoutes() {
     seed(_sambawanRoutes + _agtaRoutes + _higatanganRoutes + _otherRoutes);
@@ -29,6 +42,108 @@ class RouteRepository extends BaseRepository<AdminRoute> {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<List<AdminRoute>> fetchRoutes() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final rawList = await _apiService.getRoutes();
+      if (rawList.isNotEmpty) {
+        final remoteRoutes = rawList.map((j) => AdminRoute.fromBackendJson(j)).toList();
+        seed(remoteRoutes);
+        _isUsingFallback = false;
+      }
+    } catch (e) {
+      _isUsingFallback = true;
+      _errorMessage = 'Using cached static routes ($e)';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return items;
+  }
+
+  Future<bool> createRoute(AdminRoute route) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.createRoute(route.toBackendJson());
+      if (res != null) {
+        await fetchRoutes();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to create route: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
+  Future<bool> updateRouteApi(AdminRoute route) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.updateRoute(route.id, route.toBackendJson());
+      if (res != null) {
+        await fetchRoutes();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to update route: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
+  Future<bool> deactivateRoute(String id) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.deactivateRoute(id);
+      if (res != null) {
+        await fetchRoutes();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to deactivate route: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
+  Future<bool> deleteRoute(String id) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final ok = await _apiService.deleteRoute(id);
+      if (ok) {
+        delete(id);
+        await fetchRoutes();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to delete route: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
   }
 
   // ── Queries ─────────────────────────────────────────────────────────────────

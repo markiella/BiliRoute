@@ -1,54 +1,61 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../admin/screens/auth/admin_login_screen.dart';
+import '../../core/preferences/app_font_size.dart';
+import '../../core/preferences/user_preferences_notifier.dart';
 import '../../core/router/app_router.dart';
+import '../../core/saved/saved_destinations_notifier.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/theme_notifier.dart';
+import '../../data/models/destination_model.dart';
+import '../../l10n/app_localizations.dart';
+import '../auth/repositories/auth_repository.dart';
+import '../auth/widgets/account_verification_status.dart';
+import '../destinations/repositories/destination_repository.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Profile Screen
+// Profile Screen — BiliRoute Tourist Application
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Tourist profile screen — prototype phase.
-///
-/// All data displayed is placeholder / mock data.
-/// In future implementation:
-///   • User data will be fetched from Firebase Auth / Firestore.
-///   • Saved itineraries will be loaded from the user's profile document.
-///   • Travel preferences will persist via local storage or cloud sync.
-///
-/// [navClearance] — extra bottom padding so content clears the floating nav bar.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key, this.navClearance = 0});
   final double navClearance;
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.backgroundStart,
+      backgroundColor: cs.surface,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // ── Hero header with avatar ──────────────────────────────────────
+          // ── Hero header with avatar & edit profile button ────────────────
           SliverToBoxAdapter(child: _ProfileHeroHeader()),
 
-          // ── Stats row ────────────────────────────────────────────────────
+          // ── Real Statistics row ──────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
+              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
               child: const _StatsRow(),
+            ),
+          ),
+
+          // ── Account Verification Status ──────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
+              child: const AccountVerificationStatus(),
             ),
           ),
 
           // ── Travel Preferences ───────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
+              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
               child: _SectionLabel(label: 'Travel Preferences'),
             ),
           ),
@@ -59,85 +66,71 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
 
-          // ── Saved Itineraries ────────────────────────────────────────────
+          // ── Saved Destinations Section ───────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
-              child: _SectionLabel(label: 'Saved Itineraries'),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 0),
-              child: const _SavedItinerariesCard(),
-            ),
-          ),
-
-          // ── Favorite Destinations ────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
-              child: _SectionLabel(label: 'Favorite Destinations'),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 0),
-              child: const _FavoriteDestinationsRow(),
-            ),
-          ),
-
-          // ── App Settings ─────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
-              child: _SectionLabel(label: 'App Settings'),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 0),
-              child: _SettingsCard(
-                items: const [
-                  _SettingsItem(
-                    icon: Icons.notifications_outlined,
-                    label: 'Notifications',
-                    trailing: _SettingsTrailing.toggle,
-                  ),
-                  _SettingsItem(
-                    icon: Icons.language_outlined,
-                    label: 'Language',
-                    value: 'English',
-                    trailing: _SettingsTrailing.arrow,
-                  ),
-                  _SettingsItem(
-                    icon: Icons.download_outlined,
-                    label: 'Offline Maps',
-                    value: 'Biliran Island',
-                    trailing: _SettingsTrailing.arrow,
+              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _SectionLabel(label: 'Saved Destinations'),
+                  TextButton(
+                    onPressed: () => context.push(AppRouter.savedDestinations),
+                    child: Text(
+                      'See All',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.royalBlue,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          // ── Appearance ────────────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
-              child: _SectionLabel(label: 'Appearance'),
+              padding: EdgeInsets.fromLTRB(20.w, 6.h, 20.w, 0),
+              child: const _SavedDestinationsProfileSection(),
+            ),
+          ),
+
+          // ── Appearance (Theme Selector) ──────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
+              child: _SectionLabel(
+                  label: AppLocalizations.of(context)?.appearance ?? 'Appearance'),
             ),
           ),
           const SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.fromLTRB(20, 10, 20, 0),
               child: _AppearanceCard(),
+            ),
+          ),
+
+          // ── Accessibility & Language ──────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
+              child: _SectionLabel(
+                  label: AppLocalizations.of(context)?.accessibilityAndLanguage ??
+                         'Accessibility & Language'),
+            ),
+          ),
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 10, 20, 0),
+              child: _AccessibilityCard(),
             ),
           ),
 
           // ── My Places ─────────────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
+              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
               child: _SectionLabel(label: 'My Places'),
             ),
           ),
@@ -147,8 +140,8 @@ class ProfileScreen extends StatelessWidget {
               child: _SettingsCard(
                 items: [
                   _SettingsItem(
-                    icon: Icons.favorite_border_rounded,
-                    label: 'Saved Destinations',
+                    icon: Icons.bookmark_border_rounded,
+                    label: 'Manage Saved Destinations',
                     trailing: _SettingsTrailing.arrow,
                     onTap: () => context.push(AppRouter.savedDestinations),
                   ),
@@ -160,7 +153,7 @@ class ProfileScreen extends StatelessWidget {
           // ── About BiliRoute ───────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
+              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
               child: _SectionLabel(label: 'About BiliRoute'),
             ),
           ),
@@ -172,13 +165,7 @@ class ProfileScreen extends StatelessWidget {
                   _SettingsItem(
                     icon: Icons.info_outline_rounded,
                     label: 'App Version',
-                    value: '1.0.0 (Prototype)',
-                    trailing: _SettingsTrailing.none,
-                  ),
-                  _SettingsItem(
-                    icon: Icons.people_outline_rounded,
-                    label: 'Developer Team',
-                    value: 'BiliRoute Research Team',
+                    value: '1.0.0 (Production Release)',
                     trailing: _SettingsTrailing.none,
                   ),
                   _SettingsItem(
@@ -187,26 +174,44 @@ class ProfileScreen extends StatelessWidget {
                     value: 'Biliran Tourism Office',
                     trailing: _SettingsTrailing.none,
                   ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Account Session ───────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
+              child: _SectionLabel(label: 'Account Session'),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 0),
+              child: _SettingsCard(
+                items: [
                   _SettingsItem(
-                    icon: Icons.privacy_tip_outlined,
-                    label: 'Privacy Policy',
+                    icon: Icons.logout_rounded,
+                    label: 'Log Out',
                     trailing: _SettingsTrailing.arrow,
-                  ),
-                  _SettingsItem(
-                    icon: Icons.help_outline_rounded,
-                    label: 'Help & Support',
-                    trailing: _SettingsTrailing.arrow,
+                    onTap: () async {
+                      await context.read<AuthRepository>().logout();
+                      if (context.mounted) {
+                        context.go(AppRouter.login);
+                      }
+                    },
                   ),
                 ],
               ),
             ),
           ),
 
-          // ── Hidden admin portal entry (long-press BiliRoute logo) ─────────
+          // ── App Footer Branding ──────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
-              child: const _AdminPortalEntry(),
+              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
+              child: const _AppFooterBranding(),
             ),
           ),
 
@@ -225,20 +230,26 @@ class ProfileScreen extends StatelessWidget {
 class _ProfileHeroHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<AuthRepository>().currentSession;
+    final displayName = session.fullName?.isNotEmpty == true
+        ? session.fullName!
+        : 'Tourist Explorer';
+    final emailText = session.email?.isNotEmpty == true ? session.email! : 'explorer@biliroute.ph';
+
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB), Color(0xFF0EA5E9)],
+          colors: [Color(0xFF0A2E73), Color(0xFF1458D4), Color(0xFF15C6D9)],
           stops: [0.0, 0.55, 1.0],
         ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(36)),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 32.h),
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 28.h),
           child: Column(
             children: [
               // ── Top row: title + edit button ─────────────────────────────
@@ -254,65 +265,66 @@ class _ProfileHeroHeader extends StatelessWidget {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(99),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.30),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.edit_outlined,
-                            color: Colors.white, size: 13.sp),
-                        SizedBox(width: 5.w),
-                        Text(
-                          'Edit',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
+                  GestureDetector(
+                    onTap: () => context.push(AppRouter.editProfile),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(99),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.30),
                         ),
-                      ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.edit_outlined, color: Colors.white, size: 13.sp),
+                          SizedBox(width: 5.w),
+                          Text(
+                            'Edit',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ).animate().fade(duration: 400.ms).slideY(begin: -0.1, end: 0),
 
-              SizedBox(height: 24.h),
+              SizedBox(height: 20.h),
 
               // ── Avatar + name row ─────────────────────────────────────────
               Row(
                 children: [
-                  // Avatar with gradient ring
                   Container(
                     padding: EdgeInsets.all(3.r),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFB923C), Color(0xFFF59E0B)],
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF15C6D9), Color(0xFF4DD9E8)],
                       ),
                     ),
                     child: Container(
-                      width: 70.r,
-                      height: 70.r,
+                      width: 64.r,
+                      height: 64.r,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Color(0xFF1E40AF),
+                        color: Color(0xFF0A2E73),
                       ),
                       child: Icon(
                         Icons.person_rounded,
                         color: Colors.white,
-                        size: 36.sp,
+                        size: 32.sp,
                       ),
                     ),
                   ),
 
-                  SizedBox(width: 18.w),
+                  SizedBox(width: 16.w),
 
                   // Name & info
                   Expanded(
@@ -320,36 +332,40 @@ class _ProfileHeroHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Tourist Explorer',
+                          displayName,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 19.sp,
+                            fontSize: 18.sp,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.3,
                           ),
                         ),
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 3.h),
                         Row(
                           children: [
-                            Icon(Icons.location_on_rounded,
-                                color: Colors.white.withValues(alpha: 0.80),
-                                size: 13.sp),
-                            SizedBox(width: 3.w),
-                            Text(
-                              'Biliran Island, Eastern Visayas',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.80),
-                                fontSize: 11.sp,
-                                fontWeight: FontWeight.w500,
+                            Icon(
+                              Icons.email_outlined,
+                              color: Colors.white.withValues(alpha: 0.85),
+                              size: 12.sp,
+                            ),
+                            SizedBox(width: 4.w),
+                            Expanded(
+                              child: Text(
+                                emailText,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 6.h),
                         // Verified badge
                         Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 10.w, vertical: 4.h),
+                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.18),
                             borderRadius: BorderRadius.circular(99),
@@ -357,11 +373,18 @@ class _ProfileHeroHeader extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.verified_rounded,
-                                  color: const Color(0xFF34D399), size: 12.sp),
+                              Icon(
+                                session.isEmailVerified
+                                    ? Icons.verified_rounded
+                                    : Icons.mark_email_unread_rounded,
+                                color: session.isEmailVerified
+                                    ? const Color(0xFF34D399)
+                                    : const Color(0xFFFBBF24),
+                                size: 12.sp,
+                              ),
                               SizedBox(width: 4.w),
                               Text(
-                                'Verified Tourist',
+                                session.isEmailVerified ? 'Verified Tourist' : 'Pending Verification',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 10.sp,
@@ -385,7 +408,7 @@ class _ProfileHeroHeader extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Stats row (trips, destinations, reviews)
+// Real Stats row (Saved count, Travel preference, Verification)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _StatsRow extends StatelessWidget {
@@ -393,10 +416,35 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<AuthRepository>().currentSession;
+    final savedCount = context.watch<SavedDestinationsNotifier>().savedIds.length;
+
+    String prefLabel;
+    switch (session.preferenceProfile) {
+      case 'budget':
+        prefLabel = 'Budget';
+        break;
+      case 'fastest':
+        prefLabel = 'Fastest';
+        break;
+      case 'fewer_transfers':
+        prefLabel = 'Direct';
+        break;
+      case 'safer':
+        prefLabel = 'Safer';
+        break;
+      case 'recommended':
+      default:
+        prefLabel = 'Balanced';
+        break;
+    }
+
+    final verificationLabel = session.isEmailVerified ? 'Verified' : 'Pending';
+
     return Container(
       padding: EdgeInsets.symmetric(vertical: 16.h),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
@@ -408,11 +456,11 @@ class _StatsRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _StatItem(value: '3', label: 'Trips', icon: Icons.luggage_rounded),
+          _StatItem(value: '$savedCount', label: 'Saved Places', icon: Icons.bookmark_rounded),
           _Divider(),
-          _StatItem(value: '7', label: 'Destinations', icon: Icons.explore_rounded),
+          _StatItem(value: prefLabel, label: 'Preference', icon: Icons.tune_rounded),
           _Divider(),
-          _StatItem(value: '4', label: 'Saved', icon: Icons.bookmark_rounded),
+          _StatItem(value: verificationLabel, label: 'Account', icon: Icons.verified_user_rounded),
         ],
       ),
     )
@@ -428,24 +476,25 @@ class _StatItem extends StatelessWidget {
     required this.label,
     required this.icon,
   });
-  final String   value;
-  final String   label;
+  final String value;
+  final String label;
   final IconData icon;
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Expanded(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.primary, size: 20.sp),
+          Icon(icon, color: AppColors.royalBlue, size: 20.sp),
           SizedBox(height: 6.h),
           Text(
             value,
             style: TextStyle(
-              fontSize: 20.sp,
+              fontSize: 16.sp,
               fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+              color: cs.onSurface,
             ),
           ),
           SizedBox(height: 2.h),
@@ -468,7 +517,7 @@ class _Divider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 1,
-      height: 40.h,
+      height: 36.h,
       color: AppColors.divider,
     );
   }
@@ -481,20 +530,23 @@ class _Divider extends StatelessWidget {
 class _TravelPreferencesCard extends StatelessWidget {
   const _TravelPreferencesCard();
 
-  static const _prefs = [
-    (icon: Icons.beach_access_rounded,    label: 'Beaches',    color: Color(0xFF3B82F6)),
-    (icon: Icons.water_rounded,           label: 'Waterfalls', color: Color(0xFF6366F1)),
-    (icon: Icons.holiday_village_rounded, label: 'Islands',    color: Color(0xFF14B8A6)),
-    (icon: Icons.landscape_rounded,       label: 'Mountains',  color: Color(0xFF10B981)),
-    (icon: Icons.restaurant_rounded,      label: 'Food',       color: Color(0xFFFB923C)),
+  static const _profiles = [
+    (key: 'recommended', label: 'Balanced', emoji: '⭐', color: Color(0xFF1458D4)),
+    (key: 'budget', label: 'Budget-Friendly', emoji: '💰', color: Color(0xFF10B981)),
+    (key: 'fastest', label: 'Fastest Route', emoji: '⚡', color: Color(0xFFF59E0B)),
+    (key: 'fewer_transfers', label: 'Fewer Transfers', emoji: '🚌', color: Color(0xFF8B5CF6)),
+    (key: 'safer', label: 'Safer Travel', emoji: '🛡️', color: Color(0xFF06B6D4)),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<AuthRepository>().currentSession;
+    final activeProfile = session.preferenceProfile;
+
     return Container(
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
@@ -510,7 +562,7 @@ class _TravelPreferencesCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Interests',
+                'Route Optimization Preference',
                 style: TextStyle(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w700,
@@ -518,25 +570,60 @@ class _TravelPreferencesCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Text(
-                'Edit',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+              if (context.watch<AuthRepository>().isLoading)
+                SizedBox(
+                  width: 14.r,
+                  height: 14.r,
+                  child: const CircularProgressIndicator(strokeWidth: 2.0),
                 ),
-              ),
             ],
           ),
           SizedBox(height: 12.h),
           Wrap(
             spacing: 8.w,
             runSpacing: 8.h,
-            children: _prefs.map((p) => _PrefChip(
-              icon: p.icon,
-              label: p.label,
-              color: p.color,
-            )).toList(),
+            children: _profiles.map((p) {
+              final isSelected = activeProfile == p.key;
+              return GestureDetector(
+                onTap: () async {
+                  if (!isSelected) {
+                    final success = await context
+                        .read<AuthRepository>()
+                        .updatePreferenceProfile(p.key);
+                    if (!success && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            context.read<AuthRepository>().errorMessage ??
+                                'Failed to update preference on backend.',
+                          ),
+                          backgroundColor: const Color(0xFFEF4444),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: isSelected ? p.color : p.color.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(
+                      color: isSelected ? p.color : p.color.withValues(alpha: 0.25),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Text(
+                    '${p.emoji} ${p.label}',
+                    style: TextStyle(
+                      fontSize: 11.5.sp,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -544,216 +631,155 @@ class _TravelPreferencesCard extends StatelessWidget {
   }
 }
 
-class _PrefChip extends StatelessWidget {
-  const _PrefChip({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-  final IconData icon;
-  final String   label;
-  final Color    color;
+// ─────────────────────────────────────────────────────────────────────────────
+// Real Saved Destinations Profile Section
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SavedDestinationsProfileSection extends StatelessWidget {
+  const _SavedDestinationsProfileSection();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 13.sp),
-          SizedBox(width: 6.w),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11.5.sp,
-              fontWeight: FontWeight.w600,
-              color: color,
+    final cs = Theme.of(context).colorScheme;
+    final savedNotifier = context.watch<SavedDestinationsNotifier>();
+    final repo = context.watch<TouristDestinationRepository>();
+    final allDests = repo.destinations.isNotEmpty ? repo.destinations : allBiliranDestinations;
+
+    final savedDests = allDests.where((d) => savedNotifier.isSaved(d.id)).toList();
+
+    if (savedDests.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(20.r),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.bookmark_outline_rounded, color: AppColors.textSecondary, size: 32.sp),
+            SizedBox(height: 8.h),
+            Text(
+              'No saved destinations yet',
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+            SizedBox(height: 4.h),
+            Text(
+              'Explore Biliran destinations and tap the bookmark icon to save places.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Saved itineraries card
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SavedItinerariesCard extends StatelessWidget {
-  const _SavedItinerariesCard();
-
-  static const _itineraries = [
-    (
-      destination: 'Sambawan Island',
-      date: 'May 18, 2026',
-      fare: '₱1,830',
-      icon: Icons.sailing_rounded,
-      color: Color(0xFF0EA5E9),
-    ),
-    (
-      destination: 'Agta Beach Day Trip',
-      date: 'Apr 30, 2026',
-      fare: '₱400',
-      icon: Icons.beach_access_rounded,
-      color: Color(0xFF3B82F6),
-    ),
-    (
-      destination: 'Tinago Falls Explorer',
-      date: 'Apr 12, 2026',
-      fare: '₱570',
-      icon: Icons.water_rounded,
-      color: Color(0xFF6366F1),
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
     return Column(
-      children: _itineraries.asMap().entries.map((entry) {
-        final i = entry.value;
+      children: savedDests.take(3).map((dest) {
         return Padding(
           padding: EdgeInsets.only(bottom: 10.h),
-          child: Container(
-            padding: EdgeInsets.all(14.r),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16.r),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 12,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+          child: GestureDetector(
+            onTap: () => context.push(
+              AppRouter.destinationDetails,
+              extra: dest,
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 42.r,
-                  height: 42.r,
-                  decoration: BoxDecoration(
-                    color: i.color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(13.r),
+            child: Container(
+              padding: EdgeInsets.all(12.r),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(16.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 3),
                   ),
-                  child: Icon(i.icon, color: i.color, size: 20.sp),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        i.destination,
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      SizedBox(height: 3.h),
-                      Text(
-                        i.date,
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
+                ],
+              ),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12.r),
+                    child: dest.imageAsset.startsWith('http')
+                        ? Image.network(
+                            dest.imageAsset,
+                            width: 50.r,
+                            height: 50.r,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, err, stack) => Container(
+                              width: 50.r, height: 50.r,
+                              color: AppColors.royalBlue.withValues(alpha: 0.1),
+                              child: Icon(Icons.place_rounded, color: AppColors.royalBlue, size: 24.sp),
+                            ),
+                          )
+                        : Image.asset(
+                            dest.imageAsset,
+                            width: 50.r,
+                            height: 50.r,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, err, stack) => Container(
+                              width: 50.r, height: 50.r,
+                              color: AppColors.royalBlue.withValues(alpha: 0.1),
+                              child: Icon(Icons.place_rounded, color: AppColors.royalBlue, size: 24.sp),
+                            ),
+                          ),
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      i.fare,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.accent,
-                      ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          dest.title,
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w700,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                        SizedBox(height: 3.h),
+                        Text(
+                          dest.municipality,
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      'Official fare',
-                      style: TextStyle(
-                        fontSize: 9.sp,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.bookmark_remove_rounded, color: const Color(0xFFEF4444), size: 20.sp),
+                    tooltip: 'Unsave',
+                    onPressed: () async {
+                      try {
+                        await savedNotifier.toggle(dest.id);
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(e.toString()),
+                              backgroundColor: const Color(0xFFEF4444),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
-          ).animate(delay: (300 + entry.key * 60).ms)
-              .fade(duration: 380.ms)
-              .slideY(begin: 0.06, end: 0),
+          ),
         );
       }).toList(),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Favorite destinations horizontal row
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _FavoriteDestinationsRow extends StatelessWidget {
-  const _FavoriteDestinationsRow();
-
-  static const _favorites = [
-    (name: 'Sambawan\nIsland',   emoji: '🏝️', color: Color(0xFF0EA5E9)),
-    (name: 'Agta\nBeach',        emoji: '🌊', color: Color(0xFF3B82F6)),
-    (name: 'Tinago\nFalls',      emoji: '💧', color: Color(0xFF6366F1)),
-    (name: 'Higatangan\nIsland', emoji: '⛵', color: Color(0xFF14B8A6)),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 100.h,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _favorites.length,
-        separatorBuilder: (_, _) => SizedBox(width: 10.w),
-        itemBuilder: (context, i) {
-          final f = _favorites[i];
-          return Container(
-            width: 84.w,
-            padding: EdgeInsets.all(12.r),
-            decoration: BoxDecoration(
-              color: f.color.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: f.color.withValues(alpha: 0.20)),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(f.emoji, style: TextStyle(fontSize: 24.sp)),
-                SizedBox(height: 6.h),
-                Text(
-                  f.name,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 9.5.sp,
-                    fontWeight: FontWeight.w700,
-                    color: f.color,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ).animate(delay: (350 + i * 60).ms)
-              .fade(duration: 380.ms)
-              .slideX(begin: 0.1, end: 0);
-        },
-      ),
     );
   }
 }
@@ -762,7 +788,7 @@ class _FavoriteDestinationsRow extends StatelessWidget {
 // Reusable settings card
 // ─────────────────────────────────────────────────────────────────────────────
 
-enum _SettingsTrailing { arrow, toggle, none }
+enum _SettingsTrailing { arrow, none }
 
 class _SettingsItem {
   const _SettingsItem({
@@ -772,11 +798,11 @@ class _SettingsItem {
     required this.trailing,
     this.onTap,
   });
-  final IconData           icon;
-  final String             label;
-  final String?            value;
-  final _SettingsTrailing  trailing;
-  final VoidCallback?      onTap;
+  final IconData icon;
+  final String label;
+  final String? value;
+  final _SettingsTrailing trailing;
+  final VoidCallback? onTap;
 }
 
 class _SettingsCard extends StatelessWidget {
@@ -787,7 +813,7 @@ class _SettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
@@ -799,7 +825,7 @@ class _SettingsCard extends StatelessWidget {
       ),
       child: Column(
         children: items.asMap().entries.map((entry) {
-          final i    = entry.key;
+          final i = entry.key;
           final item = entry.value;
           final isLast = i == items.length - 1;
 
@@ -815,25 +841,21 @@ class _SettingsCard extends StatelessWidget {
           );
         }).toList(),
       ),
-    ).animate(delay: 400.ms).fade(duration: 420.ms).slideY(begin: 0.06, end: 0);
+    ).animate(delay: 350.ms).fade(duration: 400.ms).slideY(begin: 0.06, end: 0);
   }
 }
 
-class _SettingsTile extends StatefulWidget {
+class _SettingsTile extends StatelessWidget {
   const _SettingsTile({required this.item});
   final _SettingsItem item;
 
   @override
-  State<_SettingsTile> createState() => _SettingsTileState();
-}
-
-class _SettingsTileState extends State<_SettingsTile> {
-  bool _toggled = false;
-
-  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.item.onTap,
+    final cs = Theme.of(context).colorScheme;
+
+    return InkWell(
+      onTap: item.onTap,
+      borderRadius: BorderRadius.circular(20.r),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 13.h),
         child: Row(
@@ -842,10 +864,10 @@ class _SettingsTileState extends State<_SettingsTile> {
               width: 36.r,
               height: 36.r,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
+                color: AppColors.royalBlue.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10.r),
               ),
-              child: Icon(widget.item.icon, color: AppColors.primary, size: 17.sp),
+              child: Icon(item.icon, color: AppColors.royalBlue, size: 17.sp),
             ),
             SizedBox(width: 14.w),
             Expanded(
@@ -853,17 +875,17 @@ class _SettingsTileState extends State<_SettingsTile> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.item.label,
+                    item.label,
                     style: TextStyle(
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: cs.onSurface,
                     ),
                   ),
-                  if (widget.item.value != null) ...[
+                  if (item.value != null) ...[
                     SizedBox(height: 2.h),
                     Text(
-                      widget.item.value!,
+                      item.value!,
                       style: TextStyle(
                         fontSize: 11.sp,
                         color: AppColors.textSecondary,
@@ -873,37 +895,9 @@ class _SettingsTileState extends State<_SettingsTile> {
                 ],
               ),
             ),
-            // Trailing widget
-            if (widget.item.trailing == _SettingsTrailing.arrow)
+            if (item.trailing == _SettingsTrailing.arrow)
               Icon(Icons.arrow_forward_ios_rounded,
-                  color: AppColors.textSecondary, size: 13.sp)
-            else if (widget.item.trailing == _SettingsTrailing.toggle)
-              GestureDetector(
-                onTap: () => setState(() => _toggled = !_toggled),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  width: 44.w,
-                  height: 24.h,
-                  decoration: BoxDecoration(
-                    color: _toggled ? AppColors.primary : AppColors.divider,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: AnimatedAlign(
-                    duration: const Duration(milliseconds: 220),
-                    alignment:
-                        _toggled ? Alignment.centerRight : Alignment.centerLeft,
-                    child: Container(
-                      margin: EdgeInsets.all(3.r),
-                      width: 18.r,
-                      height: 18.r,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+                  color: AppColors.textSecondary, size: 13.sp),
           ],
         ),
       ),
@@ -926,7 +920,7 @@ class _SectionLabel extends StatelessWidget {
       style: TextStyle(
         fontSize: 15.sp,
         fontWeight: FontWeight.w800,
-        color: AppColors.textPrimary,
+        color: Theme.of(context).colorScheme.onSurface,
         letterSpacing: -0.2,
       ),
     );
@@ -934,85 +928,52 @@ class _SectionLabel extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Hidden admin portal entry — long-press the BiliRoute logo to open admin login
+// App Footer Branding
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _AdminPortalEntry extends StatefulWidget {
-  const _AdminPortalEntry();
-
-  @override
-  State<_AdminPortalEntry> createState() => _AdminPortalEntryState();
-}
-
-class _AdminPortalEntryState extends State<_AdminPortalEntry> {
-  int _tapCount = 0;
-
-  void _onTap() {
-    setState(() => _tapCount++);
-    if (_tapCount >= 5) {
-      _tapCount = 0;
-      _openAdminPortal();
-    }
-  }
-
-  void _onLongPress() {
-    HapticFeedback.mediumImpact();
-    _openAdminPortal();
-  }
-
-  void _openAdminPortal() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const AdminLoginScreen(),
-        fullscreenDialog: true,
-      ),
-    );
-  }
+class _AppFooterBranding extends StatelessWidget {
+  const _AppFooterBranding();
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onLongPress: _onLongPress,
-      onTap: _onTap,
-      child: Center(
-        child: Column(
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 22.r, height: 22.r,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1458D4), Color(0xFF15C6D9)],
-                    ),
-                    borderRadius: BorderRadius.circular(6.r),
+    return Center(
+      child: Column(
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 22.r, height: 22.r,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1458D4), Color(0xFF15C6D9)],
                   ),
-                  child: Icon(Icons.route_rounded, color: Colors.white, size: 12.sp),
+                  borderRadius: BorderRadius.circular(6.r),
                 ),
-                SizedBox(width: 7.w),
-                Text(
-                  'BiliRoute',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textSecondary,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 5.h),
-            Text(
-              'Smart Tourism Mobility Platform',
-              style: TextStyle(
-                fontSize: 10.sp,
-                color: AppColors.textSecondary.withValues(alpha: 0.55),
-                fontWeight: FontWeight.w500,
+                child: Icon(Icons.route_rounded, color: Colors.white, size: 12.sp),
               ),
+              SizedBox(width: 7.w),
+              Text(
+                'BiliRoute',
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textSecondary,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 5.h),
+          Text(
+            'Smart Tourist Route Recommendation Platform',
+            style: TextStyle(
+              fontSize: 10.sp,
+              color: AppColors.textSecondary.withValues(alpha: 0.55),
+              fontWeight: FontWeight.w500,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1028,39 +989,39 @@ class _AppearanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final notifier = context.watch<ThemeNotifier>();
-    final cs       = Theme.of(context).colorScheme;
-    final isDark   = cs.brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
 
     final options = [
       (
-        mode:  ThemeMode.light,
+        mode: ThemeMode.light,
         emoji: '☀️',
         label: 'Light',
-        desc:  'Classic look',
+        desc: 'Classic look',
       ),
       (
-        mode:  ThemeMode.dark,
+        mode: ThemeMode.dark,
         emoji: '🌙',
         label: 'Dark',
-        desc:  'Easy on eyes',
+        desc: 'Easy on eyes',
       ),
       (
-        mode:  ThemeMode.system,
+        mode: ThemeMode.system,
         emoji: '📱',
         label: 'System',
-        desc:  'Follow device',
+        desc: 'Follow device',
       ),
     ];
 
     return Container(
       decoration: BoxDecoration(
-        color:        isDark ? DarkColors.card : Colors.white,
+        color: isDark ? DarkColors.card : Colors.white,
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withValues(alpha: isDark ? 0.20 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.05),
             blurRadius: 14,
-            offset:     const Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -1071,8 +1032,8 @@ class _AppearanceCard extends StatelessWidget {
           Text(
             'Choose theme',
             style: TextStyle(
-              fontSize:   12.sp,
-              color:      AppColors.textSecondary,
+              fontSize: 12.sp,
+              color: AppColors.textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1088,7 +1049,7 @@ class _AppearanceCard extends StatelessWidget {
                     margin: EdgeInsets.symmetric(horizontal: 4.w),
                     padding: EdgeInsets.symmetric(vertical: 14.h),
                     decoration: BoxDecoration(
-                      color:        selected
+                      color: selected
                           ? AppColors.royalBlue
                           : (isDark ? DarkColors.elevated : AppColors.backgroundStart),
                       borderRadius: BorderRadius.circular(14.r),
@@ -1110,9 +1071,9 @@ class _AppearanceCard extends StatelessWidget {
                         Text(
                           opt.label,
                           style: TextStyle(
-                            fontSize:   12.sp,
+                            fontSize: 12.sp,
                             fontWeight: FontWeight.w700,
-                            color:      selected
+                            color: selected
                                 ? Colors.white
                                 : (isDark ? DarkColors.text : AppColors.textPrimary),
                           ),
@@ -1122,7 +1083,7 @@ class _AppearanceCard extends StatelessWidget {
                           opt.desc,
                           style: TextStyle(
                             fontSize: 9.5.sp,
-                            color:    selected
+                            color: selected
                                 ? Colors.white.withValues(alpha: 0.80)
                                 : AppColors.textSecondary,
                           ),
@@ -1137,5 +1098,194 @@ class _AppearanceCard extends StatelessWidget {
         ],
       ),
     ).animate(delay: 380.ms).fade(duration: 400.ms).slideY(begin: 0.06, end: 0);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _AccessibilityCard — Font Size + Language pickers
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AccessibilityCard extends StatelessWidget {
+  const _AccessibilityCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final prefs = context.watch<UserPreferencesNotifier>();
+    final l10n  = AppLocalizations.of(context);
+    final cs    = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? DarkColors.card : Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.all(16.r),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+
+          // ── Font Size section ──────────────────────────────────────────
+          Row(
+            children: [
+              Icon(Icons.text_fields_rounded,
+                  color: AppColors.royalBlue, size: 18.sp),
+              SizedBox(width: 8.w),
+              Text(
+                l10n?.fontSize ?? 'Font Size',
+                style: TextStyle(
+                  fontSize:   13.sp,
+                  fontWeight: FontWeight.w700,
+                  color:      cs.onSurface,
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 12.h),
+
+          // Font size option chips
+          Row(
+            children: AppFontSize.values.map((size) {
+              final selected = prefs.fontSize == size;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 3.w),
+                  child: GestureDetector(
+                    onTap: () => context.read<UserPreferencesNotifier>().setFontSize(size),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: EdgeInsets.symmetric(vertical: 10.h),
+                      decoration: BoxDecoration(
+                        color: selected ? AppColors.royalBlue
+                            : (isDark ? DarkColors.elevated : AppColors.backgroundStart),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: selected ? AppColors.royalBlue
+                              : (isDark ? DarkColors.border : AppColors.divider),
+                          width: selected ? 1.5 : 1.0,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          size.label,
+                          style: TextStyle(
+                            fontSize:   size == AppFontSize.small  ? 10.5.sp
+                                      : size == AppFontSize.medium ? 12.sp
+                                      : 13.5.sp,
+                            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                            color: selected ? Colors.white
+                                : (isDark ? DarkColors.text : AppColors.textPrimary),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+
+          // Preview text
+          SizedBox(height: 10.h),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+            decoration: BoxDecoration(
+              color: AppColors.royalBlue.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: Text(
+              l10n?.fontSizePreview ??
+                  'The quick brown fox jumps over the lazy dog.',
+              style: TextStyle(
+                fontSize:   13.sp,
+                color:      AppColors.textSecondary,
+                fontStyle:  FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+
+          SizedBox(height: 20.h),
+          Divider(height: 1, color: AppColors.divider),
+          SizedBox(height: 20.h),
+
+          // ── Language section ───────────────────────────────────────────
+          Row(
+            children: [
+              Icon(Icons.language_rounded,
+                  color: AppColors.royalBlue, size: 18.sp),
+              SizedBox(width: 8.w),
+              Text(
+                l10n?.appLanguage ?? 'App Language',
+                style: TextStyle(
+                  fontSize:   13.sp,
+                  fontWeight: FontWeight.w700,
+                  color:      cs.onSurface,
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 12.h),
+
+          // Language option tiles
+          ...UserPreferencesNotifier.supportedLocales.map((locale) {
+            final selected = prefs.locale == locale;
+            return Padding(
+              padding: EdgeInsets.only(bottom: 8.h),
+              child: GestureDetector(
+                onTap: () => context.read<UserPreferencesNotifier>().setLocale(locale),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                  decoration: BoxDecoration(
+                    color: selected ? AppColors.royalBlue.withValues(alpha: 0.08)
+                        : (isDark ? DarkColors.elevated : AppColors.backgroundStart),
+                    borderRadius: BorderRadius.circular(14.r),
+                    border: Border.all(
+                      color: selected ? AppColors.royalBlue
+                          : (isDark ? DarkColors.border : AppColors.divider),
+                      width: selected ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        UserPreferencesNotifier.localeFlag(locale),
+                        style: TextStyle(fontSize: 20.sp),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Text(
+                          UserPreferencesNotifier.localeDisplayName(locale),
+                          style: TextStyle(
+                            fontSize:   13.sp,
+                            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                            color: selected ? AppColors.royalBlue : cs.onSurface,
+                          ),
+                        ),
+                      ),
+                      if (selected)
+                        Icon(Icons.check_circle_rounded,
+                            color: AppColors.royalBlue, size: 18.sp),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+
+        ],
+      ),
+    ).animate(delay: 400.ms).fade(duration: 400.ms).slideY(begin: 0.06, end: 0);
   }
 }

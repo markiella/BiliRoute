@@ -1,5 +1,6 @@
 import 'transport_route.dart';
 
+// MIGRATION PENDING — replaced by API after backend validation
 /// Official Biliran Island transport fare dataset.
 ///
 /// All fares are sourced from the **Biliran Tourism Office** and the

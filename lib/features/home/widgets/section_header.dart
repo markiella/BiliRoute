@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Reusable section header used throughout the HomePage.
 ///
@@ -23,6 +24,9 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n   = AppLocalizations.of(context);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -31,7 +35,7 @@ class SectionHeader extends StatelessWidget {
           title,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
-                color:      AppColors.textPrimary,
+                color:      isDark ? DarkColors.text : AppColors.textPrimary,
                 fontSize:   17.sp,
               ),
         ),
@@ -41,22 +45,22 @@ class SectionHeader extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
               decoration: BoxDecoration(
-                color:        AppColors.primary.withValues(alpha: 0.08),
+                color:        AppColors.primary.withValues(alpha: isDark ? 0.20 : 0.08),
                 borderRadius: BorderRadius.circular(20.r),
               ),
               child: Row(
                 children: [
                   Text(
-                    'See All',
+                    l10n?.seeAll ?? 'See All',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color:      AppColors.primary,
+                          color:      isDark ? AppColors.oceanCyan : AppColors.primary,
                           fontWeight: FontWeight.w700,
                           fontSize:   11.5.sp,
                         ),
                   ),
                   SizedBox(width: 3.w),
                   Icon(Icons.arrow_forward_ios_rounded,
-                      size: 10.sp, color: AppColors.primary),
+                      size: 10.sp, color: isDark ? AppColors.oceanCyan : AppColors.primary),
                 ],
               ),
             ),

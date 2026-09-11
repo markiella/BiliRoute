@@ -1,4 +1,5 @@
 import '../models/field_survey_record.dart';
+import '../services/field_survey_api_service.dart';
 import 'base_repository.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -9,9 +10,21 @@ import 'base_repository.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class FieldSurveyRepository extends BaseRepository<FieldSurveyRecord> {
-  FieldSurveyRepository() {
+  final FieldSurveyApiService _apiService;
+
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _isUsingFallback = false;
+
+  FieldSurveyRepository({FieldSurveyApiService? apiService})
+      : _apiService = apiService ?? FieldSurveyApiService() {
     _seedSurveys();
+    fetchSurveys();
   }
+
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  bool get isUsingFallback => _isUsingFallback;
 
   void _seedSurveys() {
     seed(_seedData);
@@ -38,6 +51,82 @@ class FieldSurveyRepository extends BaseRepository<FieldSurveyRecord> {
 
   List<FieldSurveyRecord> getPending() =>
       items.where((s) => s.status == SurveyStatus.pending).toList();
+
+  Future<List<FieldSurveyRecord>> fetchSurveys() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final remoteSurveys = await _apiService.getFieldSurveys();
+      if (remoteSurveys.isNotEmpty) {
+        seed(remoteSurveys);
+        _isUsingFallback = false;
+      }
+    } catch (e) {
+      _isUsingFallback = true;
+      _errorMessage = 'Using cached field survey records ($e)';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return items;
+  }
+
+  Future<bool> approveSurvey(String id, {String? reviewNotes}) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.approveFieldSurvey(id, reviewNotes: reviewNotes);
+      if (res != null) {
+        validateRecord(id, validatedBy: 'Admin Reviewer');
+        await fetchSurveys();
+        return true;
+      }
+    } catch (e) {
+      validateRecord(id, validatedBy: 'Admin (Offline)');
+      _errorMessage = 'Approved locally ($e)';
+      return true;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
+  Future<bool> rejectSurvey(String id, {String? reviewNotes}) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.rejectFieldSurvey(id, reviewNotes: reviewNotes);
+      if (res != null) {
+        final idx = indexById(id);
+        if (idx != -1) {
+          updateAt(idx, items[idx].copyWith(
+            status: SurveyStatus.rejected,
+            notes: reviewNotes,
+          ));
+        }
+        await fetchSurveys();
+        return true;
+      }
+    } catch (e) {
+      final idx = indexById(id);
+      if (idx != -1) {
+        updateAt(idx, items[idx].copyWith(
+          status: SurveyStatus.rejected,
+          notes: reviewNotes,
+        ));
+      }
+      _errorMessage = 'Rejected locally ($e)';
+      return true;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
 
   void validateRecord(String id, {required String validatedBy}) {
     final idx = indexById(id);

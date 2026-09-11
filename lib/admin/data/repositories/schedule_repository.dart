@@ -5,10 +5,24 @@ import 'base_repository.dart';
 // ScheduleRepository — Transport departure schedule management
 // ─────────────────────────────────────────────────────────────────────────────
 
+import '../services/schedule_admin_api_service.dart';
+
 class ScheduleRepository extends BaseRepository<AdminSchedule> {
-  ScheduleRepository() {
+  final ScheduleAdminApiService _apiService;
+
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _isUsingFallback = false;
+
+  ScheduleRepository({ScheduleAdminApiService? apiService})
+      : _apiService = apiService ?? ScheduleAdminApiService() {
     _seedSchedules();
+    fetchSchedules();
   }
+
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  bool get isUsingFallback => _isUsingFallback;
 
   void _seedSchedules() {
     seed(_seedData);
@@ -24,6 +38,88 @@ class ScheduleRepository extends BaseRepository<AdminSchedule> {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<List<AdminSchedule>> fetchSchedules() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final rawList = await _apiService.getSchedules();
+      if (rawList.isNotEmpty) {
+        final remoteSchedules = rawList.map((j) => AdminSchedule.fromBackendJson(j)).toList();
+        seed(remoteSchedules);
+        _isUsingFallback = false;
+      }
+    } catch (e) {
+      _isUsingFallback = true;
+      _errorMessage = 'Using cached static schedules ($e)';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return items;
+  }
+
+  Future<bool> createSchedule(AdminSchedule schedule) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.createSchedule(schedule.toBackendJson());
+      if (res != null) {
+        await fetchSchedules();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to create schedule: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
+  Future<bool> updateScheduleApi(AdminSchedule schedule) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.updateSchedule(schedule.id, schedule.toBackendJson());
+      if (res != null) {
+        await fetchSchedules();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to update schedule: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
+  Future<bool> deleteSchedule(String id) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final ok = await _apiService.deleteSchedule(id);
+      if (ok) {
+        delete(id);
+        await fetchSchedules();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to delete schedule: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
   }
 
   List<AdminSchedule> getActive() =>

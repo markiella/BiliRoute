@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/destination_model.dart';
+import '../../destinations/repositories/destination_repository.dart';
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -39,13 +41,29 @@ class DestinationsListPage extends StatelessWidget {
           child: Divider(height: 1, color: AppColors.divider),
         ),
       ),
-      body: ListView.separated(
-        physics:  const BouncingScrollPhysics(),
-        padding:  EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 80.h),
-        itemCount: allBiliranDestinations.length,
-        separatorBuilder: (_, _) => SizedBox(height: 12.h),
-        itemBuilder: (context, i) =>
-            _DestinationListTile(item: allBiliranDestinations[i]),
+      body: Consumer<TouristDestinationRepository>(
+        builder: (context, repo, child) {
+          final items = repo.destinations;
+          if (repo.isLoading && items.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (items.isEmpty) {
+            return Center(
+              child: Text(
+                'No published destinations found.',
+                style: TextStyle(fontSize: 14.sp, color: AppColors.textSecondary),
+              ),
+            );
+          }
+          return ListView.separated(
+            physics:  const BouncingScrollPhysics(),
+            padding:  EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 80.h),
+            itemCount: items.length,
+            separatorBuilder: (_, _) => SizedBox(height: 12.h),
+            itemBuilder: (context, i) =>
+                _DestinationListTile(item: items[i]),
+          );
+        },
       ),
     );
   }
@@ -83,19 +101,33 @@ class _DestinationListTile extends StatelessWidget {
                   topLeft:    Radius.circular(18.r),
                   bottomLeft: Radius.circular(18.r),
                 ),
-                child: Image.asset(
-                  item.imageAsset,
-                  width:  100.w,
-                  height: 110.h,
-                  fit:    BoxFit.cover,
-                  errorBuilder: (_, e, s) => Container(
-                    width:  100.w,
-                    height: 110.h,
-                    color:  AppColors.divider,
-                    child:  Icon(Icons.image_rounded,
-                        color: AppColors.textSecondary, size: 28.sp),
-                  ),
-                ),
+                child: item.imageAsset.startsWith('http')
+                    ? Image.network(
+                        item.imageAsset,
+                        width:  100.w,
+                        height: 110.h,
+                        fit:    BoxFit.cover,
+                        errorBuilder: (_, e, s) => Container(
+                          width:  100.w,
+                          height: 110.h,
+                          color:  AppColors.divider,
+                          child:  Icon(Icons.image_rounded,
+                              color: AppColors.textSecondary, size: 28.sp),
+                        ),
+                      )
+                    : Image.asset(
+                        item.imageAsset,
+                        width:  100.w,
+                        height: 110.h,
+                        fit:    BoxFit.cover,
+                        errorBuilder: (_, e, s) => Container(
+                          width:  100.w,
+                          height: 110.h,
+                          color:  AppColors.divider,
+                          child:  Icon(Icons.image_rounded,
+                              color: AppColors.textSecondary, size: 28.sp),
+                        ),
+                      ),
               ),
             ),
 

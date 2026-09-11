@@ -103,20 +103,21 @@ class _MomentCardState extends State<_MomentCard> {
 
   @override
   Widget build(BuildContext context) {
-    final m = widget.moment;
+    final m      = widget.moment;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color:        Colors.white,
+        color:        isDark ? DarkColors.card : Colors.white,
         borderRadius: BorderRadius.circular(18.r),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withValues(alpha: 0.05),
+            color:      Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
             blurRadius: 14,
             offset:     const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: Colors.grey.withValues(alpha: 0.09),
+          color: isDark ? DarkColors.border : Colors.grey.withValues(alpha: 0.09),
         ),
       ),
       child: Column(

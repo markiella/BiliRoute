@@ -180,17 +180,31 @@ class DestinationCard extends StatelessWidget {
         );
   }
 
-  Widget _imageWidget() => Image.asset(
-        imageAsset,
-        fit:    BoxFit.cover,
-        height: double.infinity,
-        width:  double.infinity,
-        errorBuilder: (_, e, s) => Container(
-          decoration: const BoxDecoration(
-            gradient: AppColors.primaryGradient,
+  Widget _imageWidget() => imageAsset.startsWith('http')
+      ? Image.network(
+          imageAsset,
+          fit:    BoxFit.cover,
+          height: double.infinity,
+          width:  double.infinity,
+          errorBuilder: (_, e, s) => Container(
+            decoration: const BoxDecoration(
+              gradient: AppColors.primaryGradient,
+            ),
+            child: Icon(Icons.landscape_rounded,
+                color: Colors.white70, size: 40.sp),
           ),
-          child: Icon(Icons.landscape_rounded,
-              color: Colors.white70, size: 40.sp),
-        ),
-      );
+        )
+      : Image.asset(
+          imageAsset,
+          fit:    BoxFit.cover,
+          height: double.infinity,
+          width:  double.infinity,
+          errorBuilder: (_, e, s) => Container(
+            decoration: const BoxDecoration(
+              gradient: AppColors.primaryGradient,
+            ),
+            child: Icon(Icons.landscape_rounded,
+                color: Colors.white70, size: 40.sp),
+          ),
+        );
 }

@@ -65,8 +65,9 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
   @override
   Widget build(BuildContext context) {
     final canPop = context.canPop();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.backgroundStart,
+      backgroundColor: isDark ? DarkColors.background : AppColors.backgroundStart,
       appBar: _buildAppBar(context, showBack: canPop),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
@@ -476,18 +477,20 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? DarkColors.card : Colors.white,
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.05),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
         ],
+        border: isDark ? Border.all(color: DarkColors.border, width: 1) : null,
       ),
       child: child,
     )
@@ -515,6 +518,7 @@ class _FormSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -535,7 +539,7 @@ class _FormSection extends StatelessWidget {
                 label,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: isDark ? DarkColors.text : AppColors.textPrimary,
                     ),
               ),
             ),

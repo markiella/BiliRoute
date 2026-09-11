@@ -46,6 +46,8 @@ class RouteOption {
     required this.segments,
     required this.tags,
     this.note,
+    this.recommendationScore,
+    this.scoreBreakdown,
   });
 
   final String           id;
@@ -54,6 +56,56 @@ class RouteOption {
   final List<TransportRoute> segments;
   final List<String>     tags;       // e.g. ['Sea Travel', 'Budget Friendly']
   final String?          note;       // optional advisory note
+  final double?          recommendationScore; // Engine score from backend (e.g. 92.5)
+  final Map<String, dynamic>? scoreBreakdown; // Score breakdown components
+
+  /// Factory constructor parsing backend Route document JSON.
+  factory RouteOption.fromJson(Map<String, dynamic> json) {
+    final rawLabel = json['label'] as String? ?? 'Recommended';
+    final labelEnum = _mapRouteLabel(rawLabel);
+
+    final stepsList = json['steps'] as List?;
+    final segmentsList = <TransportRoute>[];
+
+    if (stepsList != null) {
+      for (final step in stepsList) {
+        if (step is Map<String, dynamic>) {
+          segmentsList.add(TransportRoute.fromJson(step));
+        }
+      }
+    }
+
+    final tagsList = json['tags'] as List?;
+    final tags = tagsList?.map((e) => e.toString()).toList() ?? [];
+
+    return RouteOption(
+      id: json['routeId'] as String? ?? json['_id'] as String? ?? '',
+      label: labelEnum,
+      description: json['availabilityNote'] as String? ?? json['note'] as String? ?? json['badge'] as String? ?? '',
+      segments: segmentsList,
+      tags: tags,
+      note: json['note'] as String?,
+      recommendationScore: (json['recommendationScore'] as num?)?.toDouble(),
+      scoreBreakdown: json['scoreBreakdown'] as Map<String, dynamic>?,
+    );
+  }
+
+  static RouteLabel _mapRouteLabel(String raw) {
+    switch (raw.toLowerCase().replaceAll('-', '_').replaceAll(' ', '_')) {
+      case 'budget_friendly':
+      case 'cheapest':
+        return RouteLabel.cheapest;
+      case 'fastest':
+        return RouteLabel.fastest;
+      case 'alternative':
+        return RouteLabel.alternative;
+      case 'comfort':
+        return RouteLabel.comfort;
+      case 'recommended':
+      default:
+        return RouteLabel.recommended;
+    }
+  }
 
   // ── Computed properties ────────────────────────────────────────────────────
 

@@ -134,4 +134,103 @@ class AdminAdvisory {
     dateAdded:               dateAdded,
     dateUpdated:             DateTime.now(),
   );
+
+  factory AdminAdvisory.fromBackendJson(Map<String, dynamic> json) {
+    final catStr = json['category'] as String? ?? 'General';
+    AdvisoryCategory cat;
+    switch (catStr.toLowerCase()) {
+      case 'weather': cat = AdvisoryCategory.weather; break;
+      case 'sea condition':
+      case 'sea travel': cat = AdvisoryCategory.seaTravel; break;
+      case 'road condition':
+      case 'road conditions': cat = AdvisoryCategory.roadConditions; break;
+      case 'safety':
+      case 'festival advisory': cat = AdvisoryCategory.festivalAdvisory; break;
+      case 'general tourism':
+      case 'tourism notice': cat = AdvisoryCategory.tourismNotice; break;
+      default: cat = AdvisoryCategory.general; break;
+    }
+
+    final sevStr = json['severity'] as String? ?? 'Info';
+    AdvisorySeverity sev;
+    switch (sevStr.toLowerCase()) {
+      case 'caution':
+      case 'moderate': sev = AdvisorySeverity.moderate; break;
+      case 'warning':
+      case 'high': sev = AdvisorySeverity.high; break;
+      case 'critical': sev = AdvisorySeverity.critical; break;
+      case 'info':
+      default: sev = AdvisorySeverity.info; break;
+    }
+
+    final isActive = json['isActive'] as bool? ?? true;
+    final expiresAt = DateTime.tryParse(json['expiresAt']?.toString() ?? '');
+    final isExpired = expiresAt != null && expiresAt.isBefore(DateTime.now());
+
+    AdvisoryStatus status;
+    if (!isActive) {
+      status = AdvisoryStatus.draft;
+    } else if (isExpired) {
+      status = AdvisoryStatus.expired;
+    } else {
+      status = AdvisoryStatus.published;
+    }
+
+    return AdminAdvisory(
+      id: json['_id'] as String? ?? json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      description: json['message'] as String? ?? '',
+      category: cat,
+      severity: sev,
+      status: status,
+      startDate: DateTime.tryParse(json['effectiveFrom']?.toString() ?? '') ?? DateTime.now(),
+      endDate: expiresAt ?? DateTime.now().add(const Duration(days: 7)),
+      affectedDestinationIds: (json['affectedDestinationIds'] as List?)
+              ?.map((e) => e is Map ? (e['_id'] as String? ?? '') : e.toString())
+              .toList() ??
+          [],
+      affectedDestinationNames: (json['affectedDestinationIds'] as List?)
+              ?.map((e) => e is Map ? (e['name'] as String? ?? '') : '')
+              .where((n) => n.isNotEmpty)
+              .toList() ??
+          [],
+      affectedRouteIds: (json['affectedRouteIds'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      publishedBy: json['issuedBy'] as String? ?? 'Biliran Tourism Office',
+      dateAdded: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+      dateUpdated: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
+    );
+  }
+
+  Map<String, dynamic> toBackendJson() {
+    String sevStr;
+    switch (severity) {
+      case AdvisorySeverity.moderate: sevStr = 'Caution'; break;
+      case AdvisorySeverity.high: sevStr = 'Warning'; break;
+      case AdvisorySeverity.critical: sevStr = 'Critical'; break;
+      case AdvisorySeverity.info: sevStr = 'Info'; break;
+    }
+
+    String catStr;
+    switch (category) {
+      case AdvisoryCategory.weather: catStr = 'Weather'; break;
+      case AdvisoryCategory.seaTravel: catStr = 'Sea Condition'; break;
+      case AdvisoryCategory.roadConditions: catStr = 'Road Condition'; break;
+      case AdvisoryCategory.festivalAdvisory: catStr = 'Safety'; break;
+      case AdvisoryCategory.tourismNotice: catStr = 'General Tourism'; break;
+      case AdvisoryCategory.general: catStr = 'General Tourism'; break;
+    }
+
+    return {
+      'title': title,
+      'message': description,
+      'category': catStr,
+      'severity': sevStr,
+      'effectiveFrom': startDate.toIso8601String(),
+      'expiresAt': endDate.toIso8601String(),
+      'isActive': status == AdvisoryStatus.published,
+      'issuedBy': publishedBy ?? 'Biliran Tourism Office',
+      if (affectedDestinationIds.isNotEmpty) 'affectedDestinationIds': affectedDestinationIds,
+      if (affectedRouteIds.isNotEmpty) 'affectedRouteIds': affectedRouteIds,
+    };
+  }
 }

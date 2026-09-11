@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/transport/biliran_fare_data.dart';
 import '../../../data/transport/transport_route.dart';
+import '../../../l10n/app_localizations.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fare Guide Screen — Official Tourism Office Fares
@@ -20,19 +21,17 @@ class FareGuideScreen extends StatefulWidget {
 }
 
 class _FareGuideScreenState extends State<FareGuideScreen> {
-  String _selectedFilter = 'All';
-  String _searchQuery    = '';
-  bool   _showSearch     = false;
-
-  static const _filterLabels = ['All', 'Land', 'Water'];
+  int    _selectedFilterIndex = 0; // 0 = All, 1 = Land, 2 = Water
+  String _searchQuery         = '';
+  bool   _showSearch          = false;
 
   List<TransportRoute> get _filtered {
     var routes = BiliranFareData.allRoutes;
 
     // Category filter
-    if (_selectedFilter == 'Land') {
+    if (_selectedFilterIndex == 1) {
       routes = routes.where((r) => !r.type.isWater).toList();
-    } else if (_selectedFilter == 'Water') {
+    } else if (_selectedFilterIndex == 2) {
       routes = routes.where((r) => r.type.isWater).toList();
     }
 
@@ -50,11 +49,18 @@ class _FareGuideScreenState extends State<FareGuideScreen> {
     return routes;
   }
 
-
   @override
   Widget build(BuildContext context) {
+    final l10n     = AppLocalizations.of(context)!;
     final canPop   = context.canPop();
     final filtered = _filtered;
+    final isDark   = Theme.of(context).brightness == Brightness.dark;
+
+    final filterLabels = [
+      l10n.fareFilterAll,
+      l10n.fareFilterLand,
+      l10n.fareFilterWater,
+    ];
 
     // Find cheapest and fastest in visible list
     final cheapest = filtered.isEmpty
@@ -66,7 +72,7 @@ class _FareGuideScreenState extends State<FareGuideScreen> {
             a.durationMinutes < b.durationMinutes ? a : b);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? DarkColors.background : const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,12 +80,17 @@ class _FareGuideScreenState extends State<FareGuideScreen> {
 
             // ── Header ────────────────────────────────────────────────────────
             _Header(
-              canPop:      canPop,
-              routeCount:  filtered.length,
-              showSearch:  _showSearch,
-              searchQuery: _searchQuery,
-              onSearchToggle: () =>
-                  setState(() { _showSearch = !_showSearch; _searchQuery = ''; }),
+              canPop:          canPop,
+              routeCount:      filtered.length,
+              showSearch:      _showSearch,
+              searchQuery:     _searchQuery,
+              title:           l10n.fareGuideTitle,
+              subtitle:        '${l10n.fareGuideSubtitle} · ${filtered.length} routes',
+              searchHint:      l10n.fareSearchHint,
+              onSearchToggle:  () => setState(() {
+                _showSearch = !_showSearch;
+                _searchQuery = '';
+              }),
               onSearchChanged: (v) => setState(() => _searchQuery = v),
             ),
 
@@ -88,7 +99,7 @@ class _FareGuideScreenState extends State<FareGuideScreen> {
             // ── Source attribution banner ──────────────────────────────────────
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: _SourceBanner(),
+              child: _SourceBanner(message: l10n.fareSourceNote),
             ),
 
             SizedBox(height: 12.h),
@@ -99,21 +110,25 @@ class _FareGuideScreenState extends State<FareGuideScreen> {
               child: ListView.separated(
                 padding:         EdgeInsets.symmetric(horizontal: 16.w),
                 scrollDirection: Axis.horizontal,
-                itemCount:       _filterLabels.length,
+                itemCount:       filterLabels.length,
                 separatorBuilder: (_, _) => SizedBox(width: 8.w),
                 itemBuilder: (_, i) {
-                  final label    = _filterLabels[i];
-                  final selected = _selectedFilter == label;
+                  final label    = filterLabels[i];
+                  final selected = _selectedFilterIndex == i;
                   return GestureDetector(
-                    onTap: () => setState(() => _selectedFilter = label),
+                    onTap: () => setState(() => _selectedFilterIndex = i),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                       decoration: BoxDecoration(
-                        color: selected ? AppColors.primary : Colors.white,
+                        color: selected
+                            ? AppColors.primary
+                            : (isDark ? DarkColors.elevated : Colors.white),
                         borderRadius: BorderRadius.circular(99),
                         border: Border.all(
-                          color: selected ? AppColors.primary : AppColors.divider,
+                          color: selected
+                              ? AppColors.primary
+                              : (isDark ? DarkColors.border : AppColors.divider),
                         ),
                         boxShadow: selected
                             ? [BoxShadow(
@@ -127,7 +142,9 @@ class _FareGuideScreenState extends State<FareGuideScreen> {
                         style: TextStyle(
                           fontSize:   12.sp,
                           fontWeight: FontWeight.w700,
-                          color:      selected ? Colors.white : AppColors.textSecondary,
+                          color: selected
+                              ? Colors.white
+                              : (isDark ? DarkColors.text : AppColors.textSecondary),
                         ),
                       ),
                     ),
@@ -146,15 +163,15 @@ class _FareGuideScreenState extends State<FareGuideScreen> {
                   children: [
                     Expanded(
                       child: _HighlightCard(
-                        label:  '💸 Cheapest',
-                        route:  cheapest,
-                        color:  AppColors.success,
+                        label: '💸 ${l10n.fareCheapest}',
+                        route: cheapest,
+                        color: AppColors.success,
                       ),
                     ),
                     SizedBox(width: 10.w),
                     Expanded(
                       child: _HighlightCard(
-                        label: '⚡ Fastest',
+                        label: '⚡ ${l10n.fareFastest}',
                         route: fastest,
                         color: AppColors.info,
                       ),
@@ -168,9 +185,9 @@ class _FareGuideScreenState extends State<FareGuideScreen> {
               child: filtered.isEmpty
                   ? Center(
                       child: Text(
-                        'No routes found',
+                        l10n.noDestinationsFound,
                         style: TextStyle(
-                          color:    AppColors.textSecondary,
+                          color:    isDark ? DarkColors.subtext : AppColors.textSecondary,
                           fontSize: 14.sp,
                         ),
                       ),
@@ -182,10 +199,15 @@ class _FareGuideScreenState extends State<FareGuideScreen> {
                       itemCount:        filtered.length,
                       separatorBuilder: (_, _) => SizedBox(height: 10.h),
                       itemBuilder: (_, i) => _FareTile(
-                        route:      filtered[i],
-                        index:      i,
-                        isCheapest: filtered[i] == cheapest,
-                        isFastest:  filtered[i] == fastest,
+                        route:          filtered[i],
+                        index:          i,
+                        isCheapest:     filtered[i] == cheapest,
+                        isFastest:      filtered[i] == fastest,
+                        cheapestLabel:  '💸 ${l10n.fareCheapest}',
+                        fastestLabel:   '⚡ ${l10n.fareFastest}',
+                        officialLabel:  l10n.fareOfficial,
+                        perPersonLabel: l10n.farePerPerson,
+                        perTripLabel:   l10n.farePerTrip,
                       ),
                     ),
             ),
@@ -204,6 +226,9 @@ class _Header extends StatelessWidget {
     required this.routeCount,
     required this.showSearch,
     required this.searchQuery,
+    required this.title,
+    required this.subtitle,
+    required this.searchHint,
     required this.onSearchToggle,
     required this.onSearchChanged,
   });
@@ -212,11 +237,16 @@ class _Header extends StatelessWidget {
   final int    routeCount;
   final bool   showSearch;
   final String searchQuery;
+  final String title;
+  final String subtitle;
+  final String searchHint;
   final VoidCallback onSearchToggle;
   final ValueChanged<String> onSearchChanged;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 0),
       child: Column(
@@ -230,14 +260,14 @@ class _Header extends StatelessWidget {
                   child: Container(
                     width: 38.r, height: 38.r,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? DarkColors.card : Colors.white,
                       borderRadius: BorderRadius.circular(12.r),
                       boxShadow: [BoxShadow(
                           color: Colors.black.withValues(alpha: 0.07),
                           blurRadius: 10)],
                     ),
                     child: Icon(Icons.arrow_back_ios_new_rounded,
-                        size: 15.sp, color: AppColors.textPrimary),
+                        size: 15.sp, color: isDark ? DarkColors.text : AppColors.textPrimary),
                   ),
                 ),
                 SizedBox(width: 14.w),
@@ -247,17 +277,17 @@ class _Header extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Fare Guide',
+                      title,
                       style: TextStyle(
                         fontSize:   20.sp,
                         fontWeight: FontWeight.w800,
-                        color:      AppColors.textPrimary,
+                        color:      isDark ? DarkColors.text : AppColors.textPrimary,
                       ),
                     ),
                     Text(
-                      'Biliran Island · $routeCount routes',
+                      subtitle,
                       style: TextStyle(
-                          fontSize: 12.sp, color: AppColors.textSecondary),
+                          fontSize: 12.sp, color: isDark ? DarkColors.subtext : AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -270,7 +300,7 @@ class _Header extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: showSearch
                         ? AppColors.primary
-                        : Colors.white,
+                        : (isDark ? DarkColors.card : Colors.white),
                     borderRadius: BorderRadius.circular(12.r),
                     boxShadow: [BoxShadow(
                         color: Colors.black.withValues(alpha: 0.07),
@@ -279,7 +309,9 @@ class _Header extends StatelessWidget {
                   child: Icon(
                     showSearch ? Icons.close_rounded : Icons.search_rounded,
                     size:  18.sp,
-                    color: showSearch ? Colors.white : AppColors.textPrimary,
+                    color: showSearch
+                        ? Colors.white
+                        : (isDark ? DarkColors.text : AppColors.textPrimary),
                   ),
                 ),
               ),
@@ -292,7 +324,7 @@ class _Header extends StatelessWidget {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
               decoration: BoxDecoration(
-                color:        Colors.white,
+                color:        isDark ? DarkColors.inputFill : Colors.white,
                 borderRadius: BorderRadius.circular(14.r),
                 boxShadow: [BoxShadow(
                     color: Colors.black.withValues(alpha: 0.06),
@@ -301,17 +333,17 @@ class _Header extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(Icons.search_rounded,
-                      color: AppColors.textSecondary, size: 18.sp),
+                      color: isDark ? DarkColors.subtext : AppColors.textSecondary, size: 18.sp),
                   SizedBox(width: 8.w),
                   Expanded(
                     child: TextField(
                       autofocus: true,
                       onChanged: onSearchChanged,
-                      style: TextStyle(fontSize: 13.sp),
+                      style: TextStyle(fontSize: 13.sp, color: isDark ? DarkColors.text : AppColors.textPrimary),
                       decoration: InputDecoration(
-                        hintText:        'Search origin or destination…',
+                        hintText:        searchHint,
                         hintStyle:       TextStyle(
-                            color: AppColors.textSecondary, fontSize: 13.sp),
+                            color: isDark ? DarkColors.subtext : AppColors.textSecondary, fontSize: 13.sp),
                         border:          InputBorder.none,
                         isDense:         true,
                         contentPadding:  EdgeInsets.zero,
@@ -330,7 +362,12 @@ class _Header extends StatelessWidget {
 
 // ── Source attribution banner ──────────────────────────────────────────────────
 
+// ── Source attribution banner ──────────────────────────────────────────────────
+
 class _SourceBanner extends StatelessWidget {
+  const _SourceBanner({required this.message});
+  final String message;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -351,8 +388,7 @@ class _SourceBanner extends StatelessWidget {
           SizedBox(width: 8.w),
           Expanded(
             child: Text(
-              'All fares are official and sourced from the Biliran Tourism Office. '
-              'Fares are fixed — not estimated.',
+              message,
               style: TextStyle(
                 fontSize: 11.sp,
                 color:    AppColors.primary,
@@ -424,6 +460,11 @@ class _FareTile extends StatelessWidget {
   const _FareTile({
     required this.route,
     required this.index,
+    required this.officialLabel,
+    required this.perPersonLabel,
+    required this.perTripLabel,
+    this.cheapestLabel,
+    this.fastestLabel,
     this.isCheapest = false,
     this.isFastest  = false,
   });
@@ -431,14 +472,20 @@ class _FareTile extends StatelessWidget {
   final int            index;
   final bool           isCheapest;
   final bool           isFastest;
+  final String         officialLabel;
+  final String         perPersonLabel;
+  final String         perTripLabel;
+  final String?        cheapestLabel;
+  final String?        fastestLabel;
 
   @override
   Widget build(BuildContext context) {
-    final color = route.type.color;
+    final color  = route.type.color;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
-        color:        Colors.white,
+        color:        isDark ? DarkColors.card : Colors.white,
         borderRadius: BorderRadius.circular(16.r),
         border: (isCheapest || isFastest)
             ? Border.all(
@@ -446,10 +493,10 @@ class _FareTile extends StatelessWidget {
                     ? AppColors.success.withValues(alpha: 0.45)
                     : AppColors.info.withValues(alpha: 0.45),
                 width: 1.5)
-            : null,
+            : (isDark ? Border.all(color: DarkColors.border, width: 1) : null),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withValues(alpha: 0.05),
+            color:      Colors.black.withValues(alpha: isDark ? 0.20 : 0.05),
             blurRadius: 12,
             offset:     const Offset(0, 4),
           ),
@@ -487,7 +534,7 @@ class _FareTile extends StatelessWidget {
                           style: TextStyle(
                             fontSize:   13.sp,
                             fontWeight: FontWeight.w700,
-                            color:      AppColors.textPrimary,
+                            color:      isDark ? DarkColors.text : AppColors.textPrimary,
                           ),
                         ),
                       ),
@@ -570,9 +617,9 @@ class _FareTile extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (isCheapest)
-                      _Badge('💸', AppColors.success),
+                      const _Badge('💸', AppColors.success),
                     if (isFastest)
-                      _Badge('⚡', AppColors.info),
+                      const _Badge('⚡', AppColors.info),
                   ],
                 ),
                 if (isCheapest || isFastest) SizedBox(height: 3.h),
@@ -595,7 +642,7 @@ class _FareTile extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6.r),
                   ),
                   child: Text(
-                    'Official Fare',
+                    officialLabel,
                     style: TextStyle(
                       fontSize:   9.sp,
                       color:      AppColors.primary,
@@ -606,7 +653,7 @@ class _FareTile extends StatelessWidget {
 
                 SizedBox(height: 2.h),
                 Text(
-                  route.perPerson ? 'per person' : 'per trip',
+                  route.perPerson ? perPersonLabel : perTripLabel,
                   style: TextStyle(
                       fontSize: 9.sp, color: AppColors.textSecondary),
                 ),

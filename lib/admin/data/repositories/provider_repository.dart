@@ -1,15 +1,28 @@
 import '../../../data/transport/transport_route.dart';
 import '../models/admin_provider.dart';
 import 'base_repository.dart';
+import '../services/provider_admin_api_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProviderRepository — Seeded from BiliranProviders
 // ─────────────────────────────────────────────────────────────────────────────
 
 class ProviderRepository extends BaseRepository<AdminProvider> {
-  ProviderRepository() {
+  final ProviderAdminApiService _apiService;
+
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _isUsingFallback = false;
+
+  ProviderRepository({ProviderAdminApiService? apiService})
+      : _apiService = apiService ?? ProviderAdminApiService() {
     _seedProviders();
+    fetchProviders();
   }
+
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  bool get isUsingFallback => _isUsingFallback;
 
   void _seedProviders() {
     seed(_verifiedProviders);
@@ -27,6 +40,87 @@ class ProviderRepository extends BaseRepository<AdminProvider> {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<List<AdminProvider>> fetchProviders() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final rawList = await _apiService.getAllProvidersAdmin();
+      if (rawList.isNotEmpty) {
+        final remoteProviders = rawList.map((j) => AdminProvider.fromBackendJson(j)).toList();
+        seed(remoteProviders);
+        _isUsingFallback = false;
+      }
+    } catch (e) {
+      _isUsingFallback = true;
+      _errorMessage = 'Using cached static providers ($e)';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return items;
+  }
+
+  Future<bool> createProvider(AdminProvider provider) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.createProvider(provider.toBackendJson());
+      if (res != null) {
+        await fetchProviders();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to create provider: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
+  Future<bool> updateProviderApi(AdminProvider provider) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.updateProvider(provider.id, provider.toBackendJson());
+      if (res != null) {
+        await fetchProviders();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to update provider: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
+  Future<bool> verifyProviderApi(String id) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final res = await _apiService.verifyProvider(id);
+      if (res != null) {
+        await fetchProviders();
+        return true;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to verify provider: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return false;
   }
 
   // ── Queries ─────────────────────────────────────────────────────────────────

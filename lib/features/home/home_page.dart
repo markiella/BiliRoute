@@ -8,6 +8,8 @@ import '../../core/router/app_router.dart';
 import '../../core/saved/saved_destinations_notifier.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/destination_model.dart';
+import '../../l10n/app_localizations.dart';
+import '../destinations/repositories/destination_repository.dart';
 import '../../widgets/fade_slide.dart';
 import 'widgets/ai_recommendations_section.dart';
 import 'widgets/category_chip.dart';
@@ -33,23 +35,38 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedCategory = 0;
+  int    _selectedCategory = 0;
+  String _searchQuery      = '';
 
   // ── Categories with icon + colour ─────────────────────────────────────────
-  static const _categories = [
-    (label: 'Beach',     icon: Icons.beach_access_rounded,    color: Color(0xFF3B82F6)),
-    (label: 'Mountain',  icon: Icons.landscape_rounded,       color: Color(0xFF10B981)),
-    (label: 'Waterfall', icon: Icons.water_rounded,           color: Color(0xFF6366F1)),
-    (label: 'Culture',   icon: Icons.museum_rounded,          color: Color(0xFFF59E0B)),
-    (label: 'Food',      icon: Icons.restaurant_rounded,      color: Color(0xFFFB923C)),
-    (label: 'Island',    icon: Icons.holiday_village_rounded, color: Color(0xFF14B8A6)),
+  List<(String label, IconData icon, Color color)> _getCategories(AppLocalizations l10n) => [
+    (l10n.categoryBeach,     Icons.beach_access_rounded,    const Color(0xFF3B82F6)),
+    (l10n.categoryMountain,  Icons.landscape_rounded,       const Color(0xFF10B981)),
+    (l10n.categoryWaterfall, Icons.water_rounded,           const Color(0xFF6366F1)),
+    (l10n.categoryCulture,   Icons.museum_rounded,          const Color(0xFFF59E0B)),
+    (l10n.categoryFood,      Icons.restaurant_rounded,      const Color(0xFFFB923C)),
+    (l10n.categoryIsland,    Icons.holiday_village_rounded, const Color(0xFF14B8A6)),
   ];
-
-  // ── Destinations — first 4 from the full dataset ────────────────────────
-  static final _destinations = allBiliranDestinations.take(4).toList();
 
   @override
   Widget build(BuildContext context) {
+    final l10n            = AppLocalizations.of(context)!;
+    final categories      = _getCategories(l10n);
+    final destinationRepo = context.watch<TouristDestinationRepository>();
+    final allDestinations = destinationRepo.destinations.isNotEmpty
+        ? destinationRepo.destinations
+        : allBiliranDestinations;
+
+    // Client-side search filter — voice text flows through the same pipeline
+    final destinations = _searchQuery.isEmpty
+        ? allDestinations
+        : allDestinations.where((d) {
+            final q = _searchQuery.toLowerCase();
+            return d.title.toLowerCase().contains(q) ||
+                   d.municipality.toLowerCase().contains(q) ||
+                   d.description.toLowerCase().contains(q);
+          }).toList();
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: MediaQuery.removePadding(
@@ -59,47 +76,37 @@ class _HomePageState extends State<HomePage> {
           physics: const BouncingScrollPhysics(),
           slivers: [
 
-            // ── 1. Cinematic Hero Header ─────────────────────────────────────
-            const SliverToBoxAdapter(
-              child: CinematicHeader(),
-            ),
-
-            // ── 2. Travel Advisory ───────────────────────────────────────────
-            //
-            // Safety advisories have been moved from the former Safety tab
-            // into this homepage section for a more contextual, always-visible
-            // placement. In the prototype phase, advisories are static mock data.
-            //
-            // FUTURE: Replace _mockAdvisories with real-time API data from
-            // PAGASA / OpenWeatherMap, cross-referenced with Biliran destination
-            // risk categories, generating dynamic advisory cards automatically.
+            // ── 1. Cinematic Hero Header ──────────────────────────────────────
             SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 0),
-                child: FadeSlide(
-                  delay: 80.ms,
-                  child: SectionHeader(
-                    title: 'Travel Advisory',
-                    onSeeAll: () {},
-                  ),
-                ),
+              child: CinematicHeader(
+                onQueryChanged: (q) => setState(() => _searchQuery = q),
               ),
             ),
+
+            // ── 2. Live Conditions Floating Bar ──────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(0, 10.h, 0, 0),
+                padding: EdgeInsets.only(top: 10.h),
+                child: const LiveConditionsSection(),
+              ),
+            ),
+
+            // ── 2b. Travel Advisories ───────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: 16.h),
                 child: const TravelAdvisorySection(),
               ),
             ),
 
-            // ── 3. Categories ────────────────────────────────────────────────
+            // ── 3. Categories Horizontal Bar ─────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 22.h, 16.w, 0),
+                padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 0),
                 child: FadeSlide(
                   delay: 150.ms,
                   child: SectionHeader(
-                    title: 'Categories',
+                    title: l10n.sectionCategories,
                     onSeeAll: () => context.push(AppRouter.categories),
                   ),
                 ),
@@ -111,15 +118,15 @@ class _HomePageState extends State<HomePage> {
                 child: ListView.separated(
                   padding:         EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
                   scrollDirection: Axis.horizontal,
-                  itemCount:       _categories.length,
+                  itemCount:       categories.length,
                   separatorBuilder: (_, _) => SizedBox(width: 10.w),
                   itemBuilder: (context, i) => FadeSlide(
                     delay:       (190 + i * 55).ms,
                     beginOffset: const Offset(0.12, 0),
                     child: CategoryChip(
-                      label:      _categories[i].label,
-                      icon:       _categories[i].icon,
-                      iconColor:  _categories[i].color,
+                      label:      categories[i].$1,
+                      icon:       categories[i].$2,
+                      iconColor:  categories[i].$3,
                       isSelected: i == _selectedCategory,
                       onTap:      () => setState(() => _selectedCategory = i),
                     ),
@@ -130,7 +137,7 @@ class _HomePageState extends State<HomePage> {
 
             // ── 4a. Continue Exploring — saved destinations ────────────────────
             _ContinueExploringSection(
-              destinations: _destinations,
+              destinations: destinations,
               onTap: (d) => context.push(AppRouter.destinationDetails, extra: d),
             ),
 
@@ -141,7 +148,9 @@ class _HomePageState extends State<HomePage> {
                 child: FadeSlide(
                   delay: 260.ms,
                   child: SectionHeader(
-                    title: 'Popular Destinations',
+                    title: destinations.isEmpty && _searchQuery.isNotEmpty
+                        ? l10n.noResultsFound
+                        : l10n.sectionPopularDestinations,
                     onSeeAll: () => context.push(AppRouter.destinations),
                   ),
                 ),
@@ -153,12 +162,12 @@ class _HomePageState extends State<HomePage> {
                 child: ListView.separated(
                   padding:         EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
                   scrollDirection: Axis.horizontal,
-                  itemCount:       _destinations.length,
+                  itemCount:       destinations.length,
                   separatorBuilder: (_, _) => SizedBox(width: 12.w),
                   itemBuilder: (context, i) {
-                    final d = _destinations[i];
+                    final d = destinations[i];
                     return DestinationCard(
-                      title:          d.title,
+                      title:          d.localizedTitle(l10n.localeName),
                       location:       d.municipality,
                       rating:         d.rating,
                       imageAsset:     d.imageAsset,
@@ -179,7 +188,7 @@ class _HomePageState extends State<HomePage> {
                 child: FadeSlide(
                   delay: 340.ms,
                   child: SectionHeader(
-                    title: 'Local Services',
+                    title: l10n.sectionLocalServices,
                     onSeeAll: () {},
                   ),
                 ),
@@ -201,7 +210,7 @@ class _HomePageState extends State<HomePage> {
                 padding: EdgeInsets.fromLTRB(16.w, 22.h, 16.w, 0),
                 child: FadeSlide(
                   delay: 420.ms,
-                  child: SectionHeader(title: 'Explore Map'),
+                  child: SectionHeader(title: l10n.sectionExploreMap),
                 ),
               ),
             ),
@@ -224,7 +233,7 @@ class _HomePageState extends State<HomePage> {
                 child: FadeSlide(
                   delay: 500.ms,
                   child: SectionHeader(
-                    title: 'Live Travel Conditions',
+                    title: l10n.sectionLiveTravelConditions,
                     onSeeAll: () {},
                   ),
                 ),
@@ -244,7 +253,7 @@ class _HomePageState extends State<HomePage> {
                 child: FadeSlide(
                   delay: 560.ms,
                   child: SectionHeader(
-                    title: 'Nearby Verified Providers',
+                    title: l10n.sectionNearbyProviders,
                     onSeeAll: () {},
                   ),
                 ),
@@ -267,7 +276,7 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SectionHeader(
-                        title: 'Smart Route Suggestions',
+                        title: l10n.sectionSmartRouteSuggestions,
                         onSeeAll: () {},
                       ),
                       SizedBox(height: 4.h),
@@ -318,7 +327,7 @@ class _HomePageState extends State<HomePage> {
                 child: FadeSlide(
                   delay: 650.ms,
                   child: SectionHeader(
-                    title: 'Upcoming Events',
+                    title: l10n.sectionUpcomingEvents,
                     onSeeAll: () {},
                   ),
                 ),
@@ -338,7 +347,7 @@ class _HomePageState extends State<HomePage> {
                 child: FadeSlide(
                   delay: 700.ms,
                   child: SectionHeader(
-                    title: 'Tourist Moments',
+                    title: l10n.sectionTouristMoments,
                     onSeeAll: () {},
                   ),
                 ),
@@ -381,6 +390,7 @@ class _ExploreMapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       height:     150.h,
       decoration: BoxDecoration(
@@ -426,7 +436,7 @@ class _ExploreMapCard extends StatelessWidget {
                 mainAxisAlignment:  MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Explore Biliran Island',
+                    l10n.exploreBiliranIsland,
                     style: TextStyle(
                       fontSize:   17.sp,
                       fontWeight: FontWeight.w800,
@@ -435,7 +445,7 @@ class _ExploreMapCard extends StatelessWidget {
                   ),
                   SizedBox(height: 5.h),
                   Text(
-                    'Find destinations, routes and important\nlocations on the map.',
+                    l10n.exploreBiliranDesc,
                     style: TextStyle(
                       fontSize: 12.sp,
                       color:    AppColors.textSecondary,
@@ -459,7 +469,7 @@ class _ExploreMapCard extends StatelessWidget {
                               color: Colors.white, size: 15.sp),
                           SizedBox(width: 7.w),
                           Text(
-                            'Open Map',
+                            l10n.openMap,
                             style: TextStyle(
                               color:      Colors.white,
                               fontSize:   12.sp,
@@ -499,7 +509,7 @@ class _ContinueExploringSection extends StatelessWidget {
     final saved = context.watch<SavedDestinationsNotifier>();
     if (saved.savedIds.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
 
-    final savedDests = allBiliranDestinations
+    final savedDests = destinations
         .where((d) => saved.isSaved(d.id))
         .toList();
 
@@ -511,42 +521,47 @@ class _ContinueExploringSection extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(16.w, 22.h, 16.w, 0),
             child: FadeSlide(
               delay: 240.ms,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Continue Exploring',
-                          style: TextStyle(
-                            fontSize:   17.sp,
-                            fontWeight: FontWeight.w800,
-                            color:      Theme.of(context).colorScheme.onSurface,
-                          ),
+              child: Builder(
+                builder: (context) {
+                  final l10n = AppLocalizations.of(context)!;
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.sectionContinueExploring,
+                              style: TextStyle(
+                                fontSize:   17.sp,
+                                fontWeight: FontWeight.w800,
+                                color:      Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            Text(
+                              l10n.yourSavedDestinations,
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color:    AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Your saved destinations',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color:    AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => context.push(AppRouter.savedDestinations),
-                    child: Text(
-                      'See all',
-                      style: TextStyle(
-                        fontSize:   13.sp,
-                        fontWeight: FontWeight.w600,
-                        color:      AppColors.royalBlue,
                       ),
-                    ),
-                  ),
-                ],
+                      GestureDetector(
+                        onTap: () => context.push(AppRouter.savedDestinations),
+                        child: Text(
+                          l10n.seeAll,
+                          style: TextStyle(
+                            fontSize:   13.sp,
+                            fontWeight: FontWeight.w600,
+                            color:      AppColors.royalBlue,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -558,9 +573,10 @@ class _ContinueExploringSection extends StatelessWidget {
               itemCount:        savedDests.length,
               separatorBuilder: (_, _) => SizedBox(width: 12.w),
               itemBuilder: (context, i) {
-                final d = savedDests[i];
+                final d    = savedDests[i];
+                final l10n = AppLocalizations.of(context)!;
                 return DestinationCard(
-                  title:         d.title,
+                  title:         d.localizedTitle(l10n.localeName),
                   location:      d.municipality,
                   rating:        d.rating,
                   imageAsset:    d.imageAsset,

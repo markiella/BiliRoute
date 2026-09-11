@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 
 // ── Data model ────────────────────────────────────────────────────────────────
 
@@ -102,19 +103,26 @@ class ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n   = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Resolve the localized type label
+    final typeLabel = _localizedType(item.type, l10n);
     return Container(
       width:  180.w,
       padding: EdgeInsets.all(14.r),
       decoration: BoxDecoration(
-        color:        Colors.white,
+        color:        isDark ? DarkColors.card : Colors.white,
         borderRadius: BorderRadius.circular(18.r),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withValues(alpha: 0.07),
+            color:      Colors.black.withValues(alpha: isDark ? 0.25 : 0.07),
             blurRadius: 16,
             offset:     const Offset(0, 4),
           ),
         ],
+        border: isDark
+            ? Border.all(color: DarkColors.border)
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +191,7 @@ class ServiceCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(6.r),
             ),
             child: Text(
-              item.type,
+              typeLabel,
               style: TextStyle(
                 fontSize:   9.5.sp,
                 fontWeight: FontWeight.w600,
@@ -239,5 +247,16 @@ class ServiceCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// Resolve the localized service type label
+String _localizedType(String type, AppLocalizations l10n) {
+  switch (type) {
+    case 'Accommodation': return l10n.serviceAccommodation;
+    case 'Boat Rental':   return l10n.serviceBoatRental;
+    case 'Transport':     return l10n.serviceTransport;
+    case 'Tour Guide':    return l10n.serviceTourGuide;
+    default:              return type;
   }
 }

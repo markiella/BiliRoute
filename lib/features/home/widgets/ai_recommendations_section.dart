@@ -85,18 +85,20 @@ class _RecCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: 195.w,
       decoration: BoxDecoration(
-        color:        Colors.white,
+        color:        isDark ? DarkColors.card : Colors.white,
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withValues(alpha: 0.07),
+            color:      Colors.black.withValues(alpha: isDark ? 0.25 : 0.07),
             blurRadius: 18,
             offset:     const Offset(0, 5),
           ),
         ],
+        border: isDark ? Border.all(color: DarkColors.border) : null,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20.r),

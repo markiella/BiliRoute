@@ -5,10 +5,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../helpers/email_suggestion_helper.dart';
+import '../services/mock_verification_service.dart';
 import '../widgets/auth_widgets.dart';
+import '../widgets/email_suggestion_card.dart';
+import '../widgets/loading_auth_button.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Login Screen — matches the design mockup
+// Login Screen — with smart email suggestion & 4-state auth feedback
 // ─────────────────────────────────────────────────────────────────────────────
 
 class LoginScreen extends StatefulWidget {
@@ -22,21 +26,62 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey      = GlobalKey<FormState>();
   final _emailCtrl    = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  bool _loading       = false;
+
+  AuthButtonState _btnState       = AuthButtonState.idle;
+  String?         _emailSuggestion;
+  String?         _authError;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailCtrl.addListener(_onEmailChanged);
+  }
+
+  void _onEmailChanged() {
+    final suggestion = EmailSuggestionHelper.getSuggestion(_emailCtrl.text);
+    if (suggestion != _emailSuggestion) {
+      setState(() => _emailSuggestion = suggestion);
+    }
+  }
 
   @override
   void dispose() {
+    _emailCtrl.removeListener(_onEmailChanged);
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
 
-  void _signIn() {
+  Future<void> _signIn() async {
+    if (_btnState != AuthButtonState.idle) return; // Prevent duplicate taps
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
-    Future.delayed(const Duration(milliseconds: 1600), () {
-      if (mounted) context.go(AppRouter.home);
+
+    setState(() {
+      _btnState  = AuthButtonState.loading;
+      _authError = null;
     });
+
+    final success = await authVerificationService.login(
+      _emailCtrl.text,
+      _passwordCtrl.text,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      setState(() => _btnState = AuthButtonState.success);
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (mounted) context.go(AppRouter.home);
+    } else {
+      setState(() {
+        _btnState  = AuthButtonState.error;
+        _authError = 'Invalid email or password. Please try again.';
+      });
+      await Future.delayed(const Duration(milliseconds: 1600));
+      if (mounted) {
+        setState(() => _btnState = AuthButtonState.idle);
+      }
+    }
   }
 
   @override
@@ -161,6 +206,17 @@ class _LoginScreenState extends State<LoginScreen> {
                             .fade(duration: 400.ms)
                             .slideY(begin: 0.1, end: 0),
 
+                        // Smart Email Suggestion Card
+                        if (_emailSuggestion != null) ...[
+                          EmailSuggestionCard(
+                            suggestedEmail: _emailSuggestion!,
+                            onTap: () {
+                              _emailCtrl.text = _emailSuggestion!;
+                              setState(() => _emailSuggestion = null);
+                            },
+                          ),
+                        ],
+
                         SizedBox(height: 12.h),
 
                         // Password
@@ -186,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed: () {},
+                            onPressed: () => context.push(AppRouter.forgotPassword),
                             style: TextButton.styleFrom(
                               padding: EdgeInsets.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -202,13 +258,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ).animate(delay: 260.ms).fade(duration: 400.ms),
 
+                        if (_authError != null) ...[
+                          SizedBox(height: 6.h),
+                          Text(
+                            _authError!,
+                            style: TextStyle(
+                              color:      const Color(0xFFEF4444),
+                              fontSize:   11.5.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ).animate().fade(duration: 200.ms),
+                        ],
+
                         SizedBox(height: 12.h),
 
-                        // Start Exploring CTA
-                        AuthCTAButton(
-                          label:     'Start Exploring',
-                          isLoading: _loading,
-                          onTap:     _signIn,
+                        // Premium Multi-State Start Exploring Button
+                        LoadingAuthButton(
+                          label: 'Start Exploring',
+                          state: _btnState,
+                          onTap: _signIn,
                         )
                             .animate(delay: 280.ms)
                             .fade(duration: 400.ms)
@@ -312,4 +380,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-
