@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -259,19 +260,105 @@ class _ProfileHeroHeader extends StatelessWidget {
     final profilePic = session.profilePic;
     final bioText = session.bio;
 
-    final isFileCover = coverPic != null &&
-        coverPic != 'default_blue' &&
-        !coverPic.startsWith('assets/') &&
-        File(coverPic).existsSync();
-
+    final isCustomCover = coverPic != null && coverPic != 'default_blue';
     final isAssetCover = coverPic != null && coverPic.startsWith('assets/');
 
-    final isFileAvatar = profilePic != null &&
-        !profilePic.startsWith('avatar_') &&
-        File(profilePic).existsSync();
+    Widget coverWidget;
+    if (!isCustomCover) {
+      coverWidget = Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0A2E73), Color(0xFF1458D4), Color(0xFF15C6D9)],
+            stops: [0.0, 0.55, 1.0],
+          ),
+        ),
+      );
+    } else if (isAssetCover) {
+      coverWidget = Image.asset(coverPic, fit: BoxFit.cover);
+    } else if (kIsWeb || coverPic.startsWith('http') || coverPic.startsWith('blob:')) {
+      coverWidget = Image.network(
+        coverPic,
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, err, stack) => Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0A2E73), Color(0xFF1458D4), Color(0xFF15C6D9)],
+            ),
+          ),
+        ),
+      );
+    } else {
+      bool exists = false;
+      try {
+        exists = File(coverPic).existsSync();
+      } catch (_) {}
 
+      if (exists) {
+        coverWidget = Image.file(
+          File(coverPic),
+          fit: BoxFit.cover,
+          errorBuilder: (ctx, err, stack) => Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0A2E73), Color(0xFF1458D4), Color(0xFF15C6D9)],
+              ),
+            ),
+          ),
+        );
+      } else {
+        coverWidget = Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0A2E73), Color(0xFF1458D4), Color(0xFF15C6D9)],
+            ),
+          ),
+        );
+      }
+    }
+
+    final isCustomAvatar = profilePic != null && !profilePic.startsWith('avatar_');
     final isPresetAvatar = profilePic != null && _presetAvatars.containsKey(profilePic);
     final presetAvatarObj = isPresetAvatar ? _presetAvatars[profilePic] : null;
+
+    Widget avatarWidget;
+    if (isPresetAvatar) {
+      avatarWidget = Icon(presetAvatarObj!.icon, color: Colors.white, size: 34.sp);
+    } else if (isCustomAvatar) {
+      if (kIsWeb || profilePic.startsWith('http') || profilePic.startsWith('blob:')) {
+        avatarWidget = ClipOval(
+          child: Image.network(
+            profilePic,
+            width: 68.r,
+            height: 68.r,
+            fit: BoxFit.cover,
+            errorBuilder: (ctx, err, stack) => Icon(Icons.person_rounded, color: Colors.white, size: 36.sp),
+          ),
+        );
+      } else {
+        bool exists = false;
+        try {
+          exists = File(profilePic).existsSync();
+        } catch (_) {}
+
+        if (exists) {
+          avatarWidget = ClipOval(
+            child: Image.file(
+              File(profilePic),
+              width: 68.r,
+              height: 68.r,
+              fit: BoxFit.cover,
+              errorBuilder: (ctx, err, stack) => Icon(Icons.person_rounded, color: Colors.white, size: 36.sp),
+            ),
+          );
+        } else {
+          avatarWidget = Icon(Icons.person_rounded, color: Colors.white, size: 36.sp);
+        }
+      }
+    } else {
+      avatarWidget = Icon(Icons.person_rounded, color: Colors.white, size: 36.sp);
+    }
 
     return Container(
       decoration: const BoxDecoration(
@@ -282,22 +369,7 @@ class _ProfileHeroHeader extends StatelessWidget {
         child: Stack(
           children: [
             // ── Background Cover Picture / Gradient ────────────────────────
-            Positioned.fill(
-              child: isFileCover
-                  ? Image.file(File(coverPic), fit: BoxFit.cover)
-                  : (isAssetCover
-                      ? Image.asset(coverPic, fit: BoxFit.cover)
-                      : Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFF0A2E73), Color(0xFF1458D4), Color(0xFF15C6D9)],
-                              stops: [0.0, 0.55, 1.0],
-                            ),
-                          ),
-                        )),
-            ),
+            Positioned.fill(child: coverWidget),
 
             // Gradient Overlay for Readability
             Positioned.fill(
@@ -390,18 +462,7 @@ class _ProfileHeroHeader extends StatelessWidget {
                               shape: BoxShape.circle,
                               color: isPresetAvatar ? presetAvatarObj!.color : const Color(0xFF0A2E73),
                             ),
-                            child: isFileAvatar
-                                ? ClipOval(
-                                    child: Image.file(
-                                      File(profilePic),
-                                      width: 68.r,
-                                      height: 68.r,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  )
-                                : (isPresetAvatar
-                                    ? Icon(presetAvatarObj!.icon, color: Colors.white, size: 34.sp)
-                                    : Icon(Icons.person_rounded, color: Colors.white, size: 36.sp)),
+                            child: avatarWidget,
                           ),
                         ),
 

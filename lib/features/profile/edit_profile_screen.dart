@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -462,11 +463,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildCoverHeaderPreview() {
-    final isFileImage = _coverPicPath != null &&
-        _coverPicPath != 'default_blue' &&
-        !_coverPicPath!.startsWith('assets/');
-
+    final isCustomImage = _coverPicPath != null && _coverPicPath != 'default_blue';
     final isAssetImage = _coverPicPath != null && _coverPicPath!.startsWith('assets/');
+
+    Widget coverContent;
+    if (!isCustomImage) {
+      coverContent = _buildDefaultBlueGradient();
+    } else if (isAssetImage) {
+      coverContent = Image.asset(_coverPicPath!, fit: BoxFit.cover);
+    } else if (kIsWeb || _coverPicPath!.startsWith('http') || _coverPicPath!.startsWith('blob:')) {
+      coverContent = Image.network(
+        _coverPicPath!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultBlueGradient(),
+      );
+    } else {
+      bool exists = false;
+      try {
+        exists = File(_coverPicPath!).existsSync();
+      } catch (_) {}
+
+      if (exists) {
+        coverContent = Image.file(
+          File(_coverPicPath!),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultBlueGradient(),
+        );
+      } else {
+        coverContent = _buildDefaultBlueGradient();
+      }
+    }
 
     return Container(
       height: 150.h,
@@ -486,17 +512,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Background Image / Gradient
-            if (isFileImage)
-              Image.file(
-                File(_coverPicPath!),
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _buildDefaultBlueGradient(),
-              )
-            else if (isAssetImage)
-              Image.asset(_coverPicPath!, fit: BoxFit.cover)
-            else
-              _buildDefaultBlueGradient(),
+            coverContent,
 
             // Gradient Overlay
             Container(
@@ -584,14 +600,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Widget _buildProfileAvatarHeader() {
     final cs = Theme.of(context).colorScheme;
-    final isFileAvatar = _profilePicPath != null &&
-        !_profilePicPath!.startsWith('avatar_') &&
-        File(_profilePicPath!).existsSync();
-
+    final isCustomAvatar = _profilePicPath != null && !_profilePicPath!.startsWith('avatar_');
     final isPresetAvatar = _profilePicPath != null && _profilePicPath!.startsWith('avatar_');
     final presetObj = isPresetAvatar
         ? _presetAvatars.firstWhere((a) => a.id == _profilePicPath, orElse: () => _presetAvatars.first)
         : null;
+
+    Widget avatarChild;
+    if (isPresetAvatar) {
+      avatarChild = Icon(presetObj!.icon, size: 44.sp, color: Colors.white);
+    } else if (isCustomAvatar) {
+      if (kIsWeb || _profilePicPath!.startsWith('http') || _profilePicPath!.startsWith('blob:')) {
+        avatarChild = ClipOval(
+          child: Image.network(
+            _profilePicPath!,
+            width: 92.r,
+            height: 92.r,
+            fit: BoxFit.cover,
+            errorBuilder: (ctx, err, stack) => Icon(Icons.person_rounded, size: 48.sp, color: AppColors.royalBlue),
+          ),
+        );
+      } else {
+        bool exists = false;
+        try {
+          exists = File(_profilePicPath!).existsSync();
+        } catch (_) {}
+
+        if (exists) {
+          avatarChild = ClipOval(
+            child: Image.file(
+              File(_profilePicPath!),
+              width: 92.r,
+              height: 92.r,
+              fit: BoxFit.cover,
+              errorBuilder: (ctx, err, stack) => Icon(Icons.person_rounded, size: 48.sp, color: AppColors.royalBlue),
+            ),
+          );
+        } else {
+          avatarChild = Icon(Icons.person_rounded, size: 48.sp, color: AppColors.royalBlue);
+        }
+      }
+    } else {
+      avatarChild = Icon(Icons.person_rounded, size: 48.sp, color: AppColors.royalBlue);
+    }
 
     return Center(
       child: Stack(
@@ -608,18 +659,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: CircleAvatar(
               radius: 46.r,
               backgroundColor: isPresetAvatar ? presetObj!.color : cs.surface,
-              child: isFileAvatar
-                  ? ClipOval(
-                      child: Image.file(
-                        File(_profilePicPath!),
-                        width: 92.r,
-                        height: 92.r,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  : (isPresetAvatar
-                      ? Icon(presetObj!.icon, size: 44.sp, color: Colors.white)
-                      : Icon(Icons.person_rounded, size: 48.sp, color: AppColors.royalBlue)),
+              child: avatarChild,
             ),
           ),
           Positioned(
