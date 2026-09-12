@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../repositories/auth_repository.dart';
 import '../services/mock_verification_service.dart';
 import '../widgets/auth_widgets.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ForgotPasswordOtpScreen — Step 2: Enter OTP
-// Mock OTP: 654321
 // ─────────────────────────────────────────────────────────────────────────────
 
 class ForgotPasswordOtpScreen extends StatefulWidget {
@@ -50,13 +51,19 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
     setState(() { _resendActive = false; _hasError = false; _errorMsg = ''; });
     _otpKey.currentState?.clear();
     _timerKey.currentState?.reset();
-    await authVerificationService.sendPasswordResetOtp(widget.email);
+    final repo = context.read<AuthRepository>();
+    if (repo.useMockAuth) {
+      await authVerificationService.sendPasswordResetOtp(widget.email);
+    } else {
+      await repo.forgotPassword(email: widget.email);
+    }
   }
 
   Future<void> _verify() async {
     if (_currentOtp.length != 6 || _isVerifying) return;
     setState(() { _isVerifying = true; _hasError = false; _errorMsg = ''; });
 
+    final repo = context.read<AuthRepository>();
     final ok = await authVerificationService
         .verifyPasswordResetOtp(widget.email, _currentOtp);
 
@@ -67,7 +74,7 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
       setState(() {
         _isVerifying = false;
         _hasError    = true;
-        _errorMsg    = 'Invalid code. Please try again.';
+        _errorMsg    = repo.errorMessage ?? 'Invalid code. Please try again.';
       });
       Future.delayed(600.ms, () {
         if (mounted) setState(() => _hasError = false);

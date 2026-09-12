@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../repositories/auth_repository.dart';
 import '../services/mock_verification_service.dart';
 import '../widgets/auth_widgets.dart';
 
@@ -12,7 +14,6 @@ import '../widgets/auth_widgets.dart';
 // EmailVerificationScreen
 //
 // Shown after registration. Accepts the email as GoRouter `extra` String.
-// Mock OTP: 123456
 // ─────────────────────────────────────────────────────────────────────────────
 
 class EmailVerificationScreen extends StatefulWidget {
@@ -45,7 +46,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   }
 
   Future<void> _sendOtp() async {
-    await authVerificationService.sendEmailVerificationOtp(widget.email);
+    final repo = context.read<AuthRepository>();
+    if (repo.useMockAuth) {
+      await authVerificationService.sendEmailVerificationOtp(widget.email);
+    }
   }
 
   // ── Countdown expired → enable Resend ─────────────────────────────────────
@@ -63,7 +67,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     });
     _otpKey.currentState?.clear();
     _timerKey.currentState?.reset();
-    await authVerificationService.sendEmailVerificationOtp(widget.email);
+    final repo = context.read<AuthRepository>();
+    if (repo.useMockAuth) {
+      await authVerificationService.sendEmailVerificationOtp(widget.email);
+    } else {
+      await repo.resendOtp();
+    }
   }
 
   // ── Verify ────────────────────────────────────────────────────────────────
@@ -75,8 +84,13 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       _errorMsg    = '';
     });
 
-    final ok = await authVerificationService.verifyEmailOtp(
-        widget.email, _currentOtp);
+    final repo = context.read<AuthRepository>();
+    bool ok = false;
+    if (repo.useMockAuth) {
+      ok = await authVerificationService.verifyEmailOtp(widget.email, _currentOtp);
+    } else {
+      ok = await repo.verifyEmailOtp(_currentOtp);
+    }
 
     if (!mounted) return;
 
@@ -86,7 +100,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       setState(() {
         _isVerifying = false;
         _hasError    = true;
-        _errorMsg    = 'Invalid verification code. Please try again.';
+        _errorMsg    = repo.errorMessage ?? 'Invalid verification code. Please try again.';
       });
       // Auto-clear error after shake
       Future.delayed(600.ms, () {

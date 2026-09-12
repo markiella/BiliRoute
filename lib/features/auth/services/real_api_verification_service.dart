@@ -44,9 +44,12 @@ class RealApiVerificationService implements AuthVerificationService {
 
   @override
   Future<bool> verifyPasswordResetOtp(String email, String otp) async {
-    // Cache OTP locally for resetPassword step
-    _lastResetOtp = otp.trim();
-    return true;
+    final cleanOtp = otp.trim();
+    _lastResetOtp = cleanOtp;
+    if (_authRepository.useMockAuth) {
+      return cleanOtp == '654321';
+    }
+    return cleanOtp.length == 6;
   }
 
   @override

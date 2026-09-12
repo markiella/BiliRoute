@@ -62,9 +62,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Future<void> _resetPassword() async {
     if (!_formValid || _loading) return;
     setState(() => _loading = true);
-    await authVerificationService.resetPassword(widget.email, _password);
-    if (!mounted) return;
-    setState(() { _loading = false; _success = true; });
+    try {
+      await authVerificationService.resetPassword(widget.email, _password);
+      if (!mounted) return;
+      setState(() { _loading = false; _success = true; });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to reset password: ${e.toString()}')),
+      );
+    }
   }
 
   @override

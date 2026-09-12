@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../helpers/email_suggestion_helper.dart';
+import '../repositories/auth_repository.dart';
 import '../services/mock_verification_service.dart';
 import '../widgets/auth_widgets.dart';
 import '../widgets/email_suggestion_card.dart';
@@ -49,7 +51,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _continue() async {
     if (!_emailValid || _loading) return;
     setState(() => _loading = true);
-    await authVerificationService.sendPasswordResetOtp(_email.trim());
+    final repo = context.read<AuthRepository>();
+    if (repo.useMockAuth) {
+      await authVerificationService.sendPasswordResetOtp(_email.trim());
+    } else {
+      await repo.forgotPassword(email: _email.trim());
+    }
     if (!mounted) return;
     context.push(AppRouter.forgotPasswordOtp, extra: _email.trim());
     setState(() => _loading = false);
