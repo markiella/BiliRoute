@@ -174,6 +174,39 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
                 ),
               ).animate(delay: 160.ms).fade(duration: 400.ms),
 
+              // ── Demo / Offline OTP Hint ────────────────────────────────────
+              if (context.watch<AuthRepository>().useMockAuth) ...[
+                SizedBox(height: 14.h),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D9488).withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(
+                      color: const Color(0xFF0D9488).withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.info_outline_rounded,
+                          color: const Color(0xFF0D9488), size: 16.sp),
+                      SizedBox(width: 8.w),
+                      Flexible(
+                        child: Text(
+                          'Test Mode: Enter 654321 to reset password',
+                          style: TextStyle(
+                            fontSize: 11.5.sp,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF0D9488),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate(delay: 180.ms).fade(duration: 300.ms),
+              ],
+
               SizedBox(height: 36.h),
 
               // ── OTP boxes ─────────────────────────────────────────────────
