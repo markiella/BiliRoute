@@ -97,11 +97,23 @@ class AuthApiService {
     String? fullName,
     Map<String, dynamic>? preferences,
     List<String>? savedDestinations,
+    String? profilePic,
+    String? coverPic,
+    String? phoneNumber,
+    String? bio,
+    String? location,
+    String? emergencyContact,
   }) async {
     final Map<String, dynamic> bodyData = {};
     if (fullName != null) bodyData['fullName'] = fullName;
     if (preferences != null) bodyData['preferences'] = preferences;
     if (savedDestinations != null) bodyData['savedDestinations'] = savedDestinations;
+    if (profilePic != null) bodyData['profilePic'] = profilePic;
+    if (coverPic != null) bodyData['coverPic'] = coverPic;
+    if (phoneNumber != null) bodyData['phoneNumber'] = phoneNumber;
+    if (bio != null) bodyData['bio'] = bio;
+    if (location != null) bodyData['location'] = location;
+    if (emergencyContact != null) bodyData['emergencyContact'] = emergencyContact;
 
     final response = await _apiClient.patch(
       '/auth/me',

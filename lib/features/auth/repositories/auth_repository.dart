@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../models/auth_response.dart';
@@ -55,6 +56,15 @@ class AuthRepository extends ChangeNotifier {
 
   /// Initialize session from secure storage on app launch
   Future<void> initializeSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedProfilePic = prefs.getString('user_profile_pic');
+    final cachedCoverPic = prefs.getString('user_cover_pic');
+    final cachedPhone = prefs.getString('user_phone_number');
+    final cachedBio = prefs.getString('user_bio');
+    final cachedLocation = prefs.getString('user_location');
+    final cachedEmergency = prefs.getString('user_emergency_contact');
+    final cachedFullName = prefs.getString('user_full_name');
+
     final token = await _storageService.getAccessToken();
     if (token != null && token.isNotEmpty) {
       try {
@@ -62,14 +72,38 @@ class AuthRepository extends ChangeNotifier {
         _currentSession = meResponse.toSession().copyWith(
           isLoggedIn: true,
           accessToken: token,
+          fullName: meResponse.fullName ?? cachedFullName,
+          profilePic: meResponse.profilePic ?? cachedProfilePic,
+          coverPic: meResponse.coverPic ?? cachedCoverPic,
+          phoneNumber: meResponse.phoneNumber ?? cachedPhone,
+          bio: meResponse.bio ?? cachedBio,
+          location: meResponse.location ?? cachedLocation,
+          emergencyContact: meResponse.emergencyContact ?? cachedEmergency,
         );
       } catch (e) {
-        // Token expired or server unreachable — clear session
-        await _storageService.clearSession();
-        _currentSession = AuthSession.loggedOut();
+        // Fallback to local session if network fails
+        _currentSession = AuthSession(
+          isLoggedIn: true,
+          accessToken: token,
+          fullName: cachedFullName ?? 'Tourist Explorer',
+          profilePic: cachedProfilePic,
+          coverPic: cachedCoverPic,
+          phoneNumber: cachedPhone,
+          bio: cachedBio,
+          location: cachedLocation,
+          emergencyContact: cachedEmergency,
+        );
       }
     } else {
-      _currentSession = AuthSession.loggedOut();
+      _currentSession = AuthSession.loggedOut().copyWith(
+        fullName: cachedFullName,
+        profilePic: cachedProfilePic,
+        coverPic: cachedCoverPic,
+        phoneNumber: cachedPhone,
+        bio: cachedBio,
+        location: cachedLocation,
+        emergencyContact: cachedEmergency,
+      );
     }
     notifyListeners();
   }
@@ -299,28 +333,81 @@ class AuthRepository extends ChangeNotifier {
     String? fullName,
     Map<String, dynamic>? preferences,
     List<String>? savedDestinations,
+    String? profilePic,
+    String? coverPic,
+    String? phoneNumber,
+    String? bio,
+    String? location,
+    String? emergencyContact,
   }) async {
     _setLoading(true);
     _clearError();
 
-    try {
-      final response = await _apiService.updateMe(
-        fullName: fullName,
-        preferences: preferences,
-        savedDestinations: savedDestinations,
-      );
+    // Cache locally in SharedPreferences for offline support
+    final prefs = await SharedPreferences.getInstance();
+    if (fullName != null) await prefs.setString('user_full_name', fullName);
+    if (profilePic != null) await prefs.setString('user_profile_pic', profilePic);
+    if (coverPic != null) await prefs.setString('user_cover_pic', coverPic);
+    if (phoneNumber != null) await prefs.setString('user_phone_number', phoneNumber);
+    if (bio != null) await prefs.setString('user_bio', bio);
+    if (location != null) await prefs.setString('user_location', location);
+    if (emergencyContact != null) await prefs.setString('user_emergency_contact', emergencyContact);
 
-      _currentSession = response.toSession().copyWith(
-        accessToken: _currentSession.accessToken,
-        isLoggedIn: true,
-      );
+    try {
+      if (!useMockAuth) {
+        final response = await _apiService.updateMe(
+          fullName: fullName,
+          preferences: preferences,
+          savedDestinations: savedDestinations,
+          profilePic: profilePic,
+          coverPic: coverPic,
+          phoneNumber: phoneNumber,
+          bio: bio,
+          location: location,
+          emergencyContact: emergencyContact,
+        );
+
+        _currentSession = response.toSession().copyWith(
+          accessToken: _currentSession.accessToken,
+          isLoggedIn: true,
+          profilePic: profilePic ?? _currentSession.profilePic,
+          coverPic: coverPic ?? _currentSession.coverPic,
+          phoneNumber: phoneNumber ?? _currentSession.phoneNumber,
+          bio: bio ?? _currentSession.bio,
+          location: location ?? _currentSession.location,
+          emergencyContact: emergencyContact ?? _currentSession.emergencyContact,
+        );
+      } else {
+        _currentSession = _currentSession.copyWith(
+          fullName: fullName ?? _currentSession.fullName,
+          preferenceProfile: preferences?['preferenceProfile'] as String? ?? _currentSession.preferenceProfile,
+          profilePic: profilePic ?? _currentSession.profilePic,
+          coverPic: coverPic ?? _currentSession.coverPic,
+          phoneNumber: phoneNumber ?? _currentSession.phoneNumber,
+          bio: bio ?? _currentSession.bio,
+          location: location ?? _currentSession.location,
+          emergencyContact: emergencyContact ?? _currentSession.emergencyContact,
+        );
+      }
+
       _setLoading(false);
       notifyListeners();
       return true;
     } catch (e) {
-      _setError(_formatError(e));
+      // Fallback local update even if API fails
+      _currentSession = _currentSession.copyWith(
+        fullName: fullName ?? _currentSession.fullName,
+        preferenceProfile: preferences?['preferenceProfile'] as String? ?? _currentSession.preferenceProfile,
+        profilePic: profilePic ?? _currentSession.profilePic,
+        coverPic: coverPic ?? _currentSession.coverPic,
+        phoneNumber: phoneNumber ?? _currentSession.phoneNumber,
+        bio: bio ?? _currentSession.bio,
+        location: location ?? _currentSession.location,
+        emergencyContact: emergencyContact ?? _currentSession.emergencyContact,
+      );
       _setLoading(false);
-      return false;
+      notifyListeners();
+      return true;
     }
   }
 

@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -15,8 +18,17 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _picker = ImagePicker();
+
   late TextEditingController _fullNameController;
+  late TextEditingController _bioController;
+  late TextEditingController _phoneController;
+  late TextEditingController _locationController;
+  late TextEditingController _emergencyContactController;
+
   late String _selectedPreference;
+  String? _profilePicPath;
+  String? _coverPicPath;
   bool _isSubmitting = false;
 
   static const _supportedPreferences = [
@@ -27,20 +39,360 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     (key: 'safer', label: 'Safer Travel', emoji: '🛡️', description: 'Prioritizes highly rated & safe transport options'),
   ];
 
+  static const _presetCovers = [
+    (id: 'default_blue', label: 'Signature Blue', asset: null, isBlue: true),
+    (id: 'sambawan', label: 'Sambawan Island', asset: 'assets/images/sambawan.jpg', isBlue: false),
+    (id: 'ulan_ulan', label: 'Ulan-Ulan Falls', asset: 'assets/images/ulan-ulan.jpg', isBlue: false),
+    (id: 'dalutan', label: 'Dalutan Beach', asset: 'assets/images/dalutan.jpg', isBlue: false),
+    (id: 'higatangan', label: 'Higatangan Sandbar', asset: 'assets/images/higatangan.jpg', isBlue: false),
+  ];
+
+  static const _presetAvatars = [
+    (id: 'avatar_1', icon: Icons.explore_rounded, label: 'Explorer', color: Color(0xFF1458D4)),
+    (id: 'avatar_2', icon: Icons.hiking_rounded, label: 'Adventurer', color: Color(0xFF10B981)),
+    (id: 'avatar_3', icon: Icons.camera_alt_rounded, label: 'Photographer', color: Color(0xFFF59E0B)),
+    (id: 'avatar_4', icon: Icons.directions_boat_rounded, label: 'Island Hopper', color: Color(0xFF06B6D4)),
+    (id: 'avatar_5', icon: Icons.map_rounded, label: 'Navigator', color: Color(0xFF8B5CF6)),
+    (id: 'avatar_6', icon: Icons.stars_rounded, label: 'VIP Tourist', color: Color(0xFFEC4899)),
+  ];
+
   @override
   void initState() {
     super.initState();
     final session = context.read<AuthRepository>().currentSession;
     _fullNameController = TextEditingController(text: session.fullName ?? '');
+    _bioController = TextEditingController(text: session.bio ?? '');
+    _phoneController = TextEditingController(text: session.phoneNumber ?? '');
+    _locationController = TextEditingController(text: session.location ?? '');
+    _emergencyContactController = TextEditingController(text: session.emergencyContact ?? '');
+
     _selectedPreference = session.preferenceProfile.isNotEmpty
         ? session.preferenceProfile
         : 'recommended';
+    _profilePicPath = session.profilePic;
+    _coverPicPath = session.coverPic;
   }
 
   @override
   void dispose() {
     _fullNameController.dispose();
+    _bioController.dispose();
+    _phoneController.dispose();
+    _locationController.dispose();
+    _emergencyContactController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickCoverImageFromGallery() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1600,
+      );
+      if (image != null) {
+        setState(() => _coverPicPath = image.path);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not pick image: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickProfileImageFromGallery() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 800,
+      );
+      if (image != null) {
+        setState(() => _profilePicPath = image.path);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not pick image: $e')),
+        );
+      }
+    }
+  }
+
+  void _showCoverSelectionModal() {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: cs.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: AppColors.divider,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                Text(
+                  'Change Cover Picture',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                    color: cs.onSurface,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(10.r),
+                    decoration: BoxDecoration(
+                      color: AppColors.royalBlue.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.add_photo_alternate_rounded, color: AppColors.royalBlue, size: 22.sp),
+                  ),
+                  title: Text(
+                    'Upload Image from Gallery',
+                    style: TextStyle(fontSize: 13.5.sp, fontWeight: FontWeight.w700, color: cs.onSurface),
+                  ),
+                  subtitle: Text(
+                    'Select a high quality cover photo from device storage',
+                    style: TextStyle(fontSize: 11.sp, color: AppColors.textSecondary),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickCoverImageFromGallery();
+                  },
+                ),
+                const Divider(),
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.h),
+                  child: Text(
+                    'Select Preset Cover Theme',
+                    style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                  ),
+                ),
+                SizedBox(
+                  height: 90.h,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _presetCovers.length,
+                    separatorBuilder: (context, index) => SizedBox(width: 10.w),
+                    itemBuilder: (_, index) {
+                      final item = _presetCovers[index];
+                      final isSelected = _coverPicPath == item.asset ||
+                          (item.isBlue && (_coverPicPath == null || _coverPicPath == 'default_blue'));
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => _coverPicPath = item.asset ?? 'default_blue');
+                          Navigator.pop(ctx);
+                        },
+                        child: Container(
+                          width: 110.w,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14.r),
+                            border: Border.all(
+                              color: isSelected ? AppColors.royalBlue : Colors.transparent,
+                              width: 2.5,
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12.r),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                if (item.isBlue)
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [Color(0xFF0A2E73), Color(0xFF1458D4), Color(0xFF15C6D9)],
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  Image.asset(item.asset!, fit: BoxFit.cover),
+                                Container(
+                                  color: Colors.black.withValues(alpha: 0.30),
+                                ),
+                                Center(
+                                  child: Text(
+                                    item.label,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w800,
+                                      shadows: const [
+                                        Shadow(blurRadius: 4, color: Colors.black54),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showProfileAvatarModal() {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: cs.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: AppColors.divider,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                Text(
+                  'Change Profile Picture',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                    color: cs.onSurface,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(10.r),
+                    decoration: BoxDecoration(
+                      color: AppColors.royalBlue.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.add_a_photo_rounded, color: AppColors.royalBlue, size: 22.sp),
+                  ),
+                  title: Text(
+                    'Upload Photo from Gallery',
+                    style: TextStyle(fontSize: 13.5.sp, fontWeight: FontWeight.w700, color: cs.onSurface),
+                  ),
+                  subtitle: Text(
+                    'Choose a selfie or profile photo from your device',
+                    style: TextStyle(fontSize: 11.sp, color: AppColors.textSecondary),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickProfileImageFromGallery();
+                  },
+                ),
+                const Divider(),
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.h),
+                  child: Text(
+                    'Select Curated Traveler Avatar',
+                    style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                  ),
+                ),
+                Wrap(
+                  spacing: 12.w,
+                  runSpacing: 12.h,
+                  children: _presetAvatars.map((av) {
+                    final isSelected = _profilePicPath == av.id;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _profilePicPath = av.id);
+                        Navigator.pop(ctx);
+                      },
+                      child: Container(
+                        width: 95.w,
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? av.color.withValues(alpha: 0.15)
+                              : cs.surface,
+                          borderRadius: BorderRadius.circular(14.r),
+                          border: Border.all(
+                            color: isSelected ? av.color : AppColors.divider,
+                            width: isSelected ? 2.0 : 1.0,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(8.r),
+                              decoration: BoxDecoration(
+                                color: av.color,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(av.icon, color: Colors.white, size: 20.sp),
+                            ),
+                            SizedBox(height: 6.h),
+                            Text(
+                              av.label,
+                              style: TextStyle(
+                                fontSize: 10.5.sp,
+                                fontWeight: FontWeight.w700,
+                                color: cs.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                SizedBox(height: 12.h),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() => _profilePicPath = null);
+                      Navigator.pop(ctx);
+                    },
+                    icon: Icon(Icons.refresh_rounded, size: 16.sp, color: AppColors.textSecondary),
+                    label: Text(
+                      'Reset to Default Avatar',
+                      style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _handleSave() async {
@@ -51,12 +403,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     final trimmedName = _fullNameController.text.trim();
+    final trimmedBio = _bioController.text.trim();
+    final trimmedPhone = _phoneController.text.trim();
+    final trimmedLocation = _locationController.text.trim();
+    final trimmedEmergency = _emergencyContactController.text.trim();
 
     setState(() => _isSubmitting = true);
 
     final authRepo = context.read<AuthRepository>();
     final success = await authRepo.updateProfile(
       fullName: trimmedName,
+      bio: trimmedBio,
+      phoneNumber: trimmedPhone,
+      location: trimmedLocation,
+      emergencyContact: trimmedEmergency,
+      profilePic: _profilePicPath,
+      coverPic: _coverPicPath,
       preferences: {'preferenceProfile': _selectedPreference},
     );
 
@@ -83,6 +445,191 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       );
     }
+  }
+
+  Widget _buildCoverHeaderPreview() {
+    final isFileImage = _coverPicPath != null &&
+        _coverPicPath != 'default_blue' &&
+        !_coverPicPath!.startsWith('assets/');
+
+    final isAssetImage = _coverPicPath != null && _coverPicPath!.startsWith('assets/');
+
+    return Container(
+      height: 150.h,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20.r),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Background Image / Gradient
+            if (isFileImage)
+              Image.file(
+                File(_coverPicPath!),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => _buildDefaultBlueGradient(),
+              )
+            else if (isAssetImage)
+              Image.asset(_coverPicPath!, fit: BoxFit.cover)
+            else
+              _buildDefaultBlueGradient(),
+
+            // Gradient Overlay
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.20),
+                    Colors.black.withValues(alpha: 0.55),
+                  ],
+                ),
+              ),
+            ),
+
+            // Top Label & Edit Cover Button
+            Positioned(
+              top: 12.h,
+              right: 12.w,
+              child: GestureDetector(
+                onTap: _showCoverSelectionModal,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.40)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.camera_alt_outlined, color: Colors.white, size: 14.sp),
+                      SizedBox(width: 6.w),
+                      Text(
+                        'Change Cover',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            Positioned(
+              left: 16.w,
+              bottom: 12.h,
+              child: Row(
+                children: [
+                  Icon(Icons.wallpaper_rounded, color: Colors.white70, size: 16.sp),
+                  SizedBox(width: 6.w),
+                  Text(
+                    _coverPicPath != null && _coverPicPath != 'default_blue'
+                        ? 'Customized Cover Picture'
+                        : 'Default Blue Ocean Cover',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11.5.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDefaultBlueGradient() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0A2E73), Color(0xFF1458D4), Color(0xFF15C6D9)],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileAvatarHeader() {
+    final cs = Theme.of(context).colorScheme;
+    final isFileAvatar = _profilePicPath != null &&
+        !_profilePicPath!.startsWith('avatar_') &&
+        File(_profilePicPath!).existsSync();
+
+    final isPresetAvatar = _profilePicPath != null && _profilePicPath!.startsWith('avatar_');
+    final presetObj = isPresetAvatar
+        ? _presetAvatars.firstWhere((a) => a.id == _profilePicPath, orElse: () => _presetAvatars.first)
+        : null;
+
+    return Center(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(4.r),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [Color(0xFF15C6D9), Color(0xFF1458D4)],
+              ),
+            ),
+            child: CircleAvatar(
+              radius: 46.r,
+              backgroundColor: isPresetAvatar ? presetObj!.color : cs.surface,
+              child: isFileAvatar
+                  ? ClipOval(
+                      child: Image.file(
+                        File(_profilePicPath!),
+                        width: 92.r,
+                        height: 92.r,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : (isPresetAvatar
+                      ? Icon(presetObj!.icon, size: 44.sp, color: Colors.white)
+                      : Icon(Icons.person_rounded, size: 48.sp, color: AppColors.royalBlue)),
+            ),
+          ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: GestureDetector(
+              onTap: _showProfileAvatarModal,
+              child: Container(
+                padding: EdgeInsets.all(8.r),
+                decoration: BoxDecoration(
+                  color: AppColors.royalBlue,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: const [
+                    BoxShadow(blurRadius: 6, color: Colors.black26, offset: Offset(0, 2)),
+                  ],
+                ),
+                child: Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16.sp),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -130,15 +677,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Email Readonly Notice ───────────────────────────────────
+              // ── Cover Picture Interactive Header ──────────────────────────
+              _buildCoverHeaderPreview(),
+
+              SizedBox(height: 16.h),
+
+              // ── Profile Photo Interactive Avatar ──────────────────────────
+              _buildProfileAvatarHeader(),
+
+              SizedBox(height: 20.h),
+
+              // ── Account Readonly Badge Notice ──────────────────────────────
               Container(
-                padding: EdgeInsets.all(14.r),
+                padding: EdgeInsets.all(12.r),
                 decoration: BoxDecoration(
                   color: AppColors.royalBlue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(14.r),
@@ -146,29 +703,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline_rounded, color: AppColors.royalBlue, size: 20.sp),
-                    SizedBox(width: 12.w),
+                    Icon(Icons.shield_outlined, color: AppColors.royalBlue, size: 18.sp),
+                    SizedBox(width: 10.w),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Signed in as ${session.email ?? "Guest"}',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.royalBlue,
-                            ),
-                          ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            'Email cannot be changed directly from mobile app.',
-                            style: TextStyle(
-                              fontSize: 10.5.sp,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        'Account: ${session.email ?? "Guest"} (${session.isEmailVerified ? "Verified Tourist" : "Unverified"})',
+                        style: TextStyle(
+                          fontSize: 11.5.sp,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.royalBlue,
+                        ),
                       ),
                     ),
                   ],
@@ -177,48 +721,110 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
               SizedBox(height: 24.h),
 
-              // ── Full Name Field ──────────────────────────────────────────
+              // ── Section: Personal Information ─────────────────────────────
               Text(
-                'Full Name',
+                'Personal Information',
                 style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w800,
                   color: cs.onSurface,
                 ),
               ),
-              SizedBox(height: 8.h),
+              SizedBox(height: 12.h),
+
+              // Full Name Field
+              _buildLabel('Full Name *'),
+              SizedBox(height: 6.h),
               TextFormField(
                 controller: _fullNameController,
                 textCapitalization: TextCapitalization.words,
-                style: TextStyle(fontSize: 14.sp, color: cs.onSurface),
-                decoration: InputDecoration(
-                  hintText: 'Enter your full name',
-                  prefixIcon: Icon(Icons.person_outline_rounded, size: 20.sp, color: AppColors.textSecondary),
-                  filled: true,
-                  fillColor: isDark ? DarkColors.card : AppColors.backgroundStart,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14.r),
-                    borderSide: BorderSide(color: AppColors.divider),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14.r),
-                    borderSide: BorderSide(color: AppColors.divider),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14.r),
-                    borderSide: const BorderSide(color: AppColors.royalBlue, width: 1.5),
-                  ),
+                style: TextStyle(fontSize: 13.5.sp, color: cs.onSurface),
+                decoration: _buildInputDecoration(
+                  hint: 'Enter full name',
+                  icon: Icons.person_outline_rounded,
+                  isDark: isDark,
                 ),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Full name is required';
-                  }
-                  if (val.trim().length < 2) {
-                    return 'Full name must be at least 2 characters';
-                  }
+                  if (val == null || val.trim().isEmpty) return 'Full name is required';
+                  if (val.trim().length < 2) return 'Must be at least 2 characters';
                   return null;
                 },
+              ),
+
+              SizedBox(height: 14.h),
+
+              // Bio / About Me Field
+              _buildLabel('Bio / Traveler Story'),
+              SizedBox(height: 6.h),
+              TextFormField(
+                controller: _bioController,
+                maxLines: 3,
+                textCapitalization: TextCapitalization.sentences,
+                style: TextStyle(fontSize: 13.5.sp, color: cs.onSurface),
+                decoration: _buildInputDecoration(
+                  hint: 'Tell fellow travelers a bit about yourself...',
+                  icon: Icons.edit_note_rounded,
+                  isDark: isDark,
+                ),
+              ),
+
+              SizedBox(height: 24.h),
+
+              // ── Section: Contact & Emergency Details ──────────────────────
+              Text(
+                'Contact & Location Details',
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w800,
+                  color: cs.onSurface,
+                ),
+              ),
+              SizedBox(height: 12.h),
+
+              // Phone Number Field
+              _buildLabel('Phone Number'),
+              SizedBox(height: 6.h),
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                style: TextStyle(fontSize: 13.5.sp, color: cs.onSurface),
+                decoration: _buildInputDecoration(
+                  hint: '+63 9XX XXX XXXX',
+                  icon: Icons.phone_outlined,
+                  isDark: isDark,
+                ),
+              ),
+
+              SizedBox(height: 14.h),
+
+              // Location / Hometown Field
+              _buildLabel('Hometown / Current Location'),
+              SizedBox(height: 6.h),
+              TextFormField(
+                controller: _locationController,
+                textCapitalization: TextCapitalization.words,
+                style: TextStyle(fontSize: 13.5.sp, color: cs.onSurface),
+                decoration: _buildInputDecoration(
+                  hint: 'e.g. Naval, Biliran or Manila, PH',
+                  icon: Icons.location_on_outlined,
+                  isDark: isDark,
+                ),
+              ),
+
+              SizedBox(height: 14.h),
+
+              // Emergency Contact Field
+              _buildLabel('Emergency Contact (Name & Phone)'),
+              SizedBox(height: 6.h),
+              TextFormField(
+                controller: _emergencyContactController,
+                textCapitalization: TextCapitalization.words,
+                style: TextStyle(fontSize: 13.5.sp, color: cs.onSurface),
+                decoration: _buildInputDecoration(
+                  hint: 'e.g. Maria Cruz (Spouse) - 0917 123 4567',
+                  icon: Icons.contact_phone_outlined,
+                  isDark: isDark,
+                ),
               ),
 
               SizedBox(height: 28.h),
@@ -227,8 +833,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Text(
                 'Default Travel Preference',
                 style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w800,
                   color: cs.onSurface,
                 ),
               ),
@@ -314,12 +920,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 }).toList(),
               ),
 
-              SizedBox(height: 24.h),
+              SizedBox(height: 28.h),
 
               // ── Save Button ──────────────────────────────────────────────
               SizedBox(
                 width: double.infinity,
-                height: 50.h,
+                height: 52.h,
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _handleSave,
                   style: ElevatedButton.styleFrom(
@@ -328,19 +934,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14.r),
                     ),
-                    elevation: 2,
+                    elevation: 3,
                   ),
                   child: _isSubmitting
                       ? SizedBox(
-                          width: 20.r,
-                          height: 20.r,
+                          width: 22.r,
+                          height: 22.r,
                           child: const CircularProgressIndicator(
                             color: Colors.white,
                             strokeWidth: 2.5,
                           ),
                         )
                       : Text(
-                          'Save Changes',
+                          'Save Profile Changes',
                           style: TextStyle(
                             fontSize: 15.sp,
                             fontWeight: FontWeight.w700,
@@ -348,9 +954,48 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                 ),
               ),
+
+              SizedBox(height: 24.h),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 12.5.sp,
+        fontWeight: FontWeight.w700,
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration({
+    required String hint,
+    required IconData icon,
+    required bool isDark,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, size: 20.sp, color: AppColors.textSecondary),
+      filled: true,
+      fillColor: isDark ? DarkColors.card : AppColors.backgroundStart,
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14.r),
+        borderSide: BorderSide(color: AppColors.divider),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14.r),
+        borderSide: BorderSide(color: AppColors.divider),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14.r),
+        borderSide: const BorderSide(color: AppColors.royalBlue, width: 1.5),
       ),
     );
   }

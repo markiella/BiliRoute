@@ -11,6 +11,12 @@ class AuthResponse {
   final bool emailVerified;
   final List<String> savedDestinations;
   final String preferenceProfile;
+  final String? profilePic;
+  final String? coverPic;
+  final String? phoneNumber;
+  final String? bio;
+  final String? location;
+  final String? emergencyContact;
   final String? simulatedOtp;
   final String? message;
 
@@ -23,6 +29,12 @@ class AuthResponse {
     this.emailVerified = false,
     this.savedDestinations = const [],
     this.preferenceProfile = 'recommended',
+    this.profilePic,
+    this.coverPic,
+    this.phoneNumber,
+    this.bio,
+    this.location,
+    this.emergencyContact,
     this.simulatedOtp,
     this.message,
   });
@@ -50,6 +62,12 @@ class AuthResponse {
       emailVerified: userData['emailVerified'] as bool? ?? false,
       savedDestinations: parsedSaved,
       preferenceProfile: parsedPrefProfile,
+      profilePic: userData['profilePic'] as String? ?? rawPref?['profilePic'] as String?,
+      coverPic: userData['coverPic'] as String? ?? rawPref?['coverPic'] as String?,
+      phoneNumber: userData['phoneNumber'] as String? ?? rawPref?['phoneNumber'] as String?,
+      bio: userData['bio'] as String? ?? rawPref?['bio'] as String?,
+      location: userData['location'] as String? ?? rawPref?['location'] as String?,
+      emergencyContact: userData['emergencyContact'] as String? ?? rawPref?['emergencyContact'] as String?,
       simulatedOtp: dataObj['simulatedOtp'] as String? ?? json['simulatedOtp'] as String?,
       message: message ?? json['message'] as String?,
     );
@@ -66,6 +84,12 @@ class AuthResponse {
       isEmailVerified: emailVerified,
       savedDestinations: savedDestinations,
       preferenceProfile: preferenceProfile,
+      profilePic: profilePic,
+      coverPic: coverPic,
+      phoneNumber: phoneNumber,
+      bio: bio,
+      location: location,
+      emergencyContact: emergencyContact,
     );
   }
 }

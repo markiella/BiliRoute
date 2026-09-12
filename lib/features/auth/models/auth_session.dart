@@ -22,6 +22,12 @@ class AuthSession {
   final bool isEmailVerified;
   final List<String> savedDestinations;
   final String preferenceProfile;
+  final String? profilePic;
+  final String? coverPic;
+  final String? phoneNumber;
+  final String? bio;
+  final String? location;
+  final String? emergencyContact;
 
   const AuthSession({
     this.isLoggedIn = false,
@@ -33,6 +39,12 @@ class AuthSession {
     this.isEmailVerified = false,
     this.savedDestinations = const [],
     this.preferenceProfile = 'recommended',
+    this.profilePic,
+    this.coverPic,
+    this.phoneNumber,
+    this.bio,
+    this.location,
+    this.emergencyContact,
   });
 
   /// Factory for an unauthenticated (logged out) state
@@ -55,6 +67,12 @@ class AuthSession {
     bool? isEmailVerified,
     List<String>? savedDestinations,
     String? preferenceProfile,
+    String? profilePic,
+    String? coverPic,
+    String? phoneNumber,
+    String? bio,
+    String? location,
+    String? emergencyContact,
   }) {
     return AuthSession(
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
@@ -66,6 +84,12 @@ class AuthSession {
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
       savedDestinations: savedDestinations ?? this.savedDestinations,
       preferenceProfile: preferenceProfile ?? this.preferenceProfile,
+      profilePic: profilePic ?? this.profilePic,
+      coverPic: coverPic ?? this.coverPic,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      bio: bio ?? this.bio,
+      location: location ?? this.location,
+      emergencyContact: emergencyContact ?? this.emergencyContact,
     );
   }
 }

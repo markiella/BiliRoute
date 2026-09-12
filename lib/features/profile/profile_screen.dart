@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -49,6 +51,14 @@ class ProfileScreen extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
               child: const AccountVerificationStatus(),
+            ),
+          ),
+
+          // ── Contact & Emergency Details ──────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
+              child: const _ContactDetailsCard(),
             ),
           ),
 
@@ -228,6 +238,15 @@ class ProfileScreen extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ProfileHeroHeader extends StatelessWidget {
+  static const _presetAvatars = {
+    'avatar_1': (icon: Icons.explore_rounded, color: Color(0xFF1458D4)),
+    'avatar_2': (icon: Icons.hiking_rounded, color: Color(0xFF10B981)),
+    'avatar_3': (icon: Icons.camera_alt_rounded, color: Color(0xFFF59E0B)),
+    'avatar_4': (icon: Icons.directions_boat_rounded, color: Color(0xFF06B6D4)),
+    'avatar_5': (icon: Icons.map_rounded, color: Color(0xFF8B5CF6)),
+    'avatar_6': (icon: Icons.stars_rounded, color: Color(0xFFEC4899)),
+  };
+
   @override
   Widget build(BuildContext context) {
     final session = context.watch<AuthRepository>().currentSession;
@@ -236,173 +255,406 @@ class _ProfileHeroHeader extends StatelessWidget {
         : 'Tourist Explorer';
     final emailText = session.email?.isNotEmpty == true ? session.email! : 'explorer@biliroute.ph';
 
+    final coverPic = session.coverPic;
+    final profilePic = session.profilePic;
+    final bioText = session.bio;
+
+    final isFileCover = coverPic != null &&
+        coverPic != 'default_blue' &&
+        !coverPic.startsWith('assets/') &&
+        File(coverPic).existsSync();
+
+    final isAssetCover = coverPic != null && coverPic.startsWith('assets/');
+
+    final isFileAvatar = profilePic != null &&
+        !profilePic.startsWith('avatar_') &&
+        File(profilePic).existsSync();
+
+    final isPresetAvatar = profilePic != null && _presetAvatars.containsKey(profilePic);
+    final presetAvatarObj = isPresetAvatar ? _presetAvatars[profilePic] : null;
+
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF0A2E73), Color(0xFF1458D4), Color(0xFF15C6D9)],
-          stops: [0.0, 0.55, 1.0],
-        ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 28.h),
-          child: Column(
-            children: [
-              // ── Top row: title + edit button ─────────────────────────────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'My Profile',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => context.push(AppRouter.editProfile),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(99),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.30),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.edit_outlined, color: Colors.white, size: 13.sp),
-                          SizedBox(width: 5.w),
-                          Text(
-                            'Edit',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w600,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+        child: Stack(
+          children: [
+            // ── Background Cover Picture / Gradient ────────────────────────
+            Positioned.fill(
+              child: isFileCover
+                  ? Image.file(File(coverPic), fit: BoxFit.cover)
+                  : (isAssetCover
+                      ? Image.asset(coverPic, fit: BoxFit.cover)
+                      : Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF0A2E73), Color(0xFF1458D4), Color(0xFF15C6D9)],
+                              stops: [0.0, 0.55, 1.0],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
+                        )),
+            ),
+
+            // Gradient Overlay for Readability
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.35),
+                      Colors.black.withValues(alpha: 0.70),
+                    ],
                   ),
-                ],
-              ).animate().fade(duration: 400.ms).slideY(begin: -0.1, end: 0),
+                ),
+              ),
+            ),
 
-              SizedBox(height: 20.h),
-
-              // ── Avatar + name row ─────────────────────────────────────────
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(3.r),
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF15C6D9), Color(0xFF4DD9E8)],
-                      ),
-                    ),
-                    child: Container(
-                      width: 64.r,
-                      height: 64.r,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF0A2E73),
-                      ),
-                      child: Icon(
-                        Icons.person_rounded,
-                        color: Colors.white,
-                        size: 32.sp,
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(width: 16.w),
-
-                  // Name & info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            // ── Header Content ─────────────────────────────────────────────
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 28.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top row: title + edit button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          displayName,
+                          'My Profile',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 18.sp,
+                            fontSize: 20.sp,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.3,
+                            shadows: const [Shadow(blurRadius: 6, color: Colors.black45)],
                           ),
                         ),
-                        SizedBox(height: 3.h),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.email_outlined,
-                              color: Colors.white.withValues(alpha: 0.85),
-                              size: 12.sp,
+                        GestureDetector(
+                          onTap: () => context.push(AppRouter.editProfile),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(99),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.40),
+                              ),
                             ),
-                            SizedBox(width: 4.w),
-                            Expanded(
-                              child: Text(
-                                emailText,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.85),
-                                  fontSize: 11.sp,
-                                  fontWeight: FontWeight.w500,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.edit_outlined, color: Colors.white, size: 13.sp),
+                                SizedBox(width: 5.w),
+                                Text(
+                                  'Edit',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
-                        SizedBox(height: 6.h),
-                        // Verified badge
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(99),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                        ),
+                      ],
+                    ).animate().fade(duration: 400.ms).slideY(begin: -0.1, end: 0),
+
+                    SizedBox(height: 20.h),
+
+                    // Avatar + name row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Profile Avatar
+                        Container(
+                          padding: EdgeInsets.all(3.r),
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF15C6D9), Color(0xFF4DD9E8)],
+                            ),
+                          ),
+                          child: Container(
+                            width: 68.r,
+                            height: 68.r,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isPresetAvatar ? presetAvatarObj!.color : const Color(0xFF0A2E73),
+                            ),
+                            child: isFileAvatar
+                                ? ClipOval(
+                                    child: Image.file(
+                                      File(profilePic),
+                                      width: 68.r,
+                                      height: 68.r,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : (isPresetAvatar
+                                    ? Icon(presetAvatarObj!.icon, color: Colors.white, size: 34.sp)
+                                    : Icon(Icons.person_rounded, color: Colors.white, size: 36.sp)),
+                          ),
+                        ),
+
+                        SizedBox(width: 16.w),
+
+                        // Name & info
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                session.isEmailVerified
-                                    ? Icons.verified_rounded
-                                    : Icons.mark_email_unread_rounded,
-                                color: session.isEmailVerified
-                                    ? const Color(0xFF34D399)
-                                    : const Color(0xFFFBBF24),
-                                size: 12.sp,
-                              ),
-                              SizedBox(width: 4.w),
                               Text(
-                                session.isEmailVerified ? 'Verified Tourist' : 'Pending Verification',
+                                displayName,
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.3,
+                                  shadows: const [Shadow(blurRadius: 4, color: Colors.black45)],
+                                ),
+                              ),
+                              SizedBox(height: 3.h),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.email_outlined,
+                                    color: Colors.white.withValues(alpha: 0.90),
+                                    size: 12.sp,
+                                  ),
+                                  SizedBox(width: 4.w),
+                                  Expanded(
+                                    child: Text(
+                                      emailText,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.90),
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 6.h),
+                              // Verified badge
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.22),
+                                  borderRadius: BorderRadius.circular(99),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      session.isEmailVerified
+                                          ? Icons.verified_rounded
+                                          : Icons.mark_email_unread_rounded,
+                                      color: session.isEmailVerified
+                                          ? const Color(0xFF34D399)
+                                          : const Color(0xFFFBBF24),
+                                      size: 12.sp,
+                                    ),
+                                    SizedBox(width: 4.w),
+                                    Text(
+                                      session.isEmailVerified ? 'Verified Tourist' : 'Pending Verification',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              ).animate(delay: 100.ms).fade(duration: 450.ms).slideY(begin: 0.1, end: 0),
-            ],
-          ),
+                    ).animate(delay: 100.ms).fade(duration: 450.ms).slideY(begin: 0.1, end: 0),
+
+                    // Optional Bio line
+                    if (bioText != null && bioText.trim().isNotEmpty) ...[
+                      SizedBox(height: 14.h),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.format_quote_rounded, color: Colors.white70, size: 16.sp),
+                            SizedBox(width: 6.w),
+                            Expanded(
+                              child: Text(
+                                bioText,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.95),
+                                  fontSize: 11.5.sp,
+                                  fontStyle: FontStyle.italic,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Contact & Emergency Details Card
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ContactDetailsCard extends StatelessWidget {
+  const _ContactDetailsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final session = context.watch<AuthRepository>().currentSession;
+
+    final phone = session.phoneNumber?.isNotEmpty == true ? session.phoneNumber! : 'Not added';
+    final location = session.location?.isNotEmpty == true ? session.location! : 'Not added';
+    final emergency = session.emergencyContact?.isNotEmpty == true ? session.emergencyContact! : 'Not added';
+
+    return Container(
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.badge_outlined, color: AppColors.royalBlue, size: 18.sp),
+              SizedBox(width: 8.w),
+              Text(
+                'Contact & Safety Info',
+                style: TextStyle(
+                  fontSize: 13.5.sp,
+                  fontWeight: FontWeight.w800,
+                  color: cs.onSurface,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => context.push(AppRouter.editProfile),
+                child: Text(
+                  'Edit',
+                  style: TextStyle(
+                    fontSize: 11.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.royalBlue,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          _DetailRow(
+            icon: Icons.phone_outlined,
+            label: 'Phone',
+            value: phone,
+          ),
+          SizedBox(height: 8.h),
+          _DetailRow(
+            icon: Icons.location_on_outlined,
+            label: 'Location',
+            value: location,
+          ),
+          SizedBox(height: 8.h),
+          _DetailRow(
+            icon: Icons.health_and_safety_outlined,
+            label: 'Emergency Contact',
+            value: emergency,
+            isEmergency: true,
+          ),
+        ],
+      ),
+    ).animate(delay: 240.ms).fade(duration: 400.ms).slideY(begin: 0.07, end: 0);
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.isEmergency = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool isEmergency;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 15.sp,
+          color: isEmergency ? const Color(0xFFEF4444) : AppColors.textSecondary,
+        ),
+        SizedBox(width: 8.w),
+        Text(
+          '$label:',
+          style: TextStyle(
+            fontSize: 11.5.sp,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        SizedBox(width: 6.w),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11.5.sp,
+              fontWeight: FontWeight.w700,
+              color: isEmergency && value != 'Not added'
+                  ? const Color(0xFFDC2626)
+                  : cs.onSurface,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
