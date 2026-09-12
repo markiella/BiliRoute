@@ -568,18 +568,6 @@ class _ContactDetailsCard extends StatelessWidget {
                   color: cs.onSurface,
                 ),
               ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => context.push(AppRouter.editProfile),
-                child: Text(
-                  'Edit',
-                  style: TextStyle(
-                    fontSize: 11.5.sp,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.royalBlue,
-                  ),
-                ),
-              ),
             ],
           ),
           SizedBox(height: 12.h),

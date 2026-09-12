@@ -95,8 +95,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final msg = e.toString().contains('MissingPluginException')
+            ? 'Gallery image picker requires an app restart to load native plugins. Please perform a full restart (R in terminal).'
+            : 'Could not pick image: $e';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not pick image: $e')),
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: const Color(0xFFEF4444),
+            duration: const Duration(seconds: 4),
+          ),
         );
       }
     }
@@ -114,8 +121,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final msg = e.toString().contains('MissingPluginException')
+            ? 'Gallery image picker requires an app restart to load native plugins. Please perform a full restart (R in terminal).'
+            : 'Could not pick image: $e';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not pick image: $e')),
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: const Color(0xFFEF4444),
+            duration: const Duration(seconds: 4),
+          ),
         );
       }
     }
@@ -655,25 +669,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             color: cs.onSurface,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: _isSubmitting ? null : _handleSave,
-            child: _isSubmitting
-                ? SizedBox(
-                    width: 16.r,
-                    height: 16.r,
-                    child: const CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(
-                    'Save',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.royalBlue,
-                    ),
-                  ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
