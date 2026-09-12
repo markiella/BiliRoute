@@ -12,8 +12,8 @@ class ApiConfig {
   static const String apiVersion = 'v1';
 
   // Override this string if testing on a physical mobile device over local Wi-Fi LAN
-  // e.g., '192.168.1.100'
-  static String? customLanIp = '10.158.140.138';
+  // e.g., '192.168.1.18'
+  static String? customLanIp = '192.168.1.18';
 
   /// Dynamically computes the appropriate API base URL based on execution platform
   static String get baseUrl {
@@ -35,7 +35,7 @@ class ApiConfig {
   }
 
   // Network Timeouts
-  static const Duration connectTimeout = Duration(seconds: 10);
+  static const Duration connectTimeout = Duration(seconds: 5);
   static const Duration receiveTimeout = Duration(seconds: 15);
   static const Duration sendTimeout = Duration(seconds: 10);
 
